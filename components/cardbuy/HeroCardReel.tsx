@@ -44,7 +44,15 @@ const STAGE_BG_CLASSES = [
  * light tint (e.g. `text-sun`) would disappear. The tier's own drama is
  * carried by the card stage and the chip, not by the panel's text colour.
  */
-const LABEL_TINT_CLASSES = ["text-muted", "text-ink", "text-ocean"] as const;
+const LABEL_TINT_CLASSES = ["text-ink", "text-ocean"] as const;
+
+/** Card fan spread (% of card width per step), by breakpoint. */
+function spreadFor(vw: number): number {
+  if (vw < 480) return 30;
+  if (vw < 768) return 40;
+  if (vw < 1280) return 50;
+  return 58;
+}
 
 /**
  * Default tier set — the Pokémon rarity ladder, used by the platform
@@ -60,9 +68,9 @@ export const RARITY_TIERS: ReelTier[] = [
       { label: "BUY RANGE", value: "£0.10 – £0.50" },
       { label: "NOTABLE", value: "Pikachu · Gastly · Caterpie" },
     ],
-    bg: "bg-paper-strong",
-    tint: "text-muted",
-    chipBg: "bg-paper-strong",
+    bg: "bg-wave",
+    tint: "text-ink",
+    chipBg: "bg-wave",
   },
   {
     label: "UNCOMMON",
@@ -73,9 +81,9 @@ export const RARITY_TIERS: ReelTier[] = [
       { label: "BUY RANGE", value: "£0.30 – £2" },
       { label: "NOTABLE", value: "Haunter · Machoke · Ivysaur" },
     ],
-    bg: "bg-wave",
-    tint: "text-ink",
-    chipBg: "bg-wave",
+    bg: "bg-ocean",
+    tint: "text-ocean",
+    chipBg: "bg-ocean",
   },
   {
     label: "RARE",
@@ -100,7 +108,7 @@ export const RARITY_TIERS: ReelTier[] = [
       { label: "NOTABLE", value: "Charizard · Blastoise · Mewtwo" },
     ],
     bg: "bg-ocean",
-    tint: "text-ink",
+    tint: "text-ocean",
     chipBg: "bg-ocean",
   },
   {
@@ -113,7 +121,7 @@ export const RARITY_TIERS: ReelTier[] = [
       { label: "NOTABLE", value: "Ivy Pikachu · Mew · No.1 Trainer" },
     ],
     bg: "bg-ink",
-    tint: "text-ocean",
+    tint: "text-ink",
     chipBg: "bg-ink",
   },
 ];
@@ -138,9 +146,10 @@ type Props = {
  * through it, progressing an active index across the supplied tiers.
  *
  * Layout:
- *   • Mobile — card stage centered, big wordmark + blurb below.
- *   • Desktop (≥md) — card stage on the left, detail panel on the
- *     right with wordmark, blurb, and the tier's stat pairs.
+ *   • Mobile — card stage on top, copy + stats stacked below on a plate.
+ *   • Desktop (≥md) — card stage on the left, detail panel on the right
+ *     with its content distributed top-to-bottom rather than clustered
+ *     in the middle, so a tall stage doesn't read as mostly empty.
  *
  * Each card's transform is interpolated from its distance to the active
  * index. The active card also receives `.card-3d-engaged` so holo shimmer
@@ -159,17 +168,23 @@ export function HeroCardReel({
   intro,
 }: Props) {
   const sectionRef = useRef<HTMLElement | null>(null);
+  const pinRangeRef = useRef<HTMLDivElement | null>(null);
+  const stickyRef = useRef<HTMLDivElement | null>(null);
   const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
   const stageBgRef = useRef<HTMLDivElement | null>(null);
   const progressBarRef = useRef<HTMLDivElement | null>(null);
 
-  // Refs for per-tier copy (both mobile-below and desktop-right share these).
+  // Per-tier copy targets. Each array holds the desktop node at [0] and
+  // the mobile node at [1] — both panels show the same tier, so the
+  // handler writes through the whole array rather than duplicating logic.
   const labelRefs = useRef<(HTMLElement | null)[]>([]);
   const blurbRefs = useRef<(HTMLElement | null)[]>([]);
-  const statValueRefs = useRef<(HTMLElement | null)[]>([]);
-  const statLabelRefs = useRef<(HTMLElement | null)[]>([]);
-  const tierIndexRef = useRef<HTMLElement | null>(null);
-  const tierChipRef = useRef<HTMLElement | null>(null);
+  const tierIndexRefs = useRef<(HTMLElement | null)[]>([]);
+  const tierChipRefs = useRef<(HTMLElement | null)[]>([]);
+  // Stat slots, keyed `${panel}-${slot}` so desktop and mobile can be
+  // updated in one pass without two parallel ref structures.
+  const statValueRefs = useRef<Record<string, HTMLElement | null>>({});
+  const statLabelRefs = useRef<Record<string, HTMLElement | null>>({});
 
   const lastTierRef = useRef<number>(-1);
 
@@ -186,6 +201,9 @@ export function HeroCardReel({
 
   const tierCount = tiers.length;
   const cardCount = cards.length;
+  // Fixed slot count so the imperative updater always has a target, even
+  // for tiers declaring fewer stats than their neighbours.
+  const statSlots = Math.max(1, ...tiers.map((t) => t.stats.length));
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -197,25 +215,45 @@ export function HeroCardReel({
     const update = () => {
       queued = false;
       const activeTiers = tiersRef.current;
-      const rect = section.getBoundingClientRect();
       const vh = window.innerHeight || 1;
-      const total = Math.max(1, rect.height - vh);
-      const scrolled = Math.max(0, -rect.top);
-      const p = Math.min(1, Math.max(0, scrolled / total));
+
+      // Progress is measured over the range the stage is actually
+      // PINNED for, not over the whole section — the `intro` block sits
+      // above the stage (and is a different height on each page that
+      // uses this component), and the stage is shorter than the
+      // viewport, so it unpins before the section ends.
+      //
+      // `pinRangeRef` is the stage's non-sticky parent, which is what
+      // makes this measurable: a sticky element's own `offsetTop` grows
+      // as it sticks, so reading the offset off the stage itself feeds
+      // its own output back into the input and squashes the range.
+      const sticky = stickyRef.current;
+      const range = pinRangeRef.current;
+      if (!range) return;
+      const rangeRect = range.getBoundingClientRect();
+      const stickyH = sticky?.offsetHeight ?? vh;
+      const pinTop = sticky ? parseFloat(getComputedStyle(sticky).top) || 0 : 0;
+      const travel = Math.max(1, rangeRect.height - stickyH);
+      const p = Math.min(1, Math.max(0, (pinTop - rangeRect.top) / travel));
 
       const n = cardCount;
       const activeIdx = p * (n - 1);
       const activeI = Math.min(n - 1, Math.round(activeIdx));
+      const spread = spreadFor(window.innerWidth || 1024);
 
       cardsRef.current.forEach((el, i) => {
         if (!el) return;
         const offset = i - activeIdx;
         const abs = Math.abs(offset);
-        const tx = offset * 58;
+        const tx = offset * spread;
         const rotY = -offset * 14;
         const rotZ = offset * -2.4;
-        const scale = Math.max(0.55, 1.12 - abs * 0.2);
-        const opacity = Math.max(0.16, 1 - abs * 0.42);
+        // Gentler scale + opacity falloff than the original: the
+        // neighbouring cards have to stay legible, otherwise the "fan"
+        // reads as a single floating card — especially on mobile, where
+        // the stage is narrow and only ±1 neighbour is ever on screen.
+        const scale = Math.max(0.66, 1.1 - abs * 0.15);
+        const opacity = Math.max(0.3, 1 - abs * 0.32);
         const z = 1000 - Math.round(abs * 100);
         el.style.transform =
           `translate(-50%, -50%) translateX(${tx.toFixed(2)}%) ` +
@@ -251,7 +289,6 @@ export function HeroCardReel({
         const tier = activeTiers[Math.min(activeI, activeTiers.length - 1)];
         if (!tier) return;
 
-        // Wordmark tint swap on both mobile + desktop wordmarks.
         labelRefs.current.forEach((el) => {
           if (!el) return;
           el.textContent = tier.label;
@@ -262,37 +299,39 @@ export function HeroCardReel({
           if (!el) return;
           el.textContent = tier.blurb;
         });
-
-        // Stat slots are fixed at the max across all tiers. Any slot
-        // this tier doesn't fill is blanked and hidden, otherwise the
-        // previous tier's value would linger on screen.
-        statValueRefs.current.forEach((el, i) => {
+        tierIndexRefs.current.forEach((el) => {
           if (!el) return;
-          const stat = tier.stats[i];
-          const labelEl = statLabelRefs.current[i];
-          const wrapper = el.parentElement;
-          if (stat) {
-            el.textContent = stat.value;
-            if (labelEl) labelEl.textContent = stat.label;
-            if (wrapper) wrapper.style.display = "";
-          } else {
-            el.textContent = "";
-            if (labelEl) labelEl.textContent = "";
-            if (wrapper) wrapper.style.display = "none";
-          }
+          el.textContent = `${activeI + 1} / ${activeTiers.length}`;
+        });
+        tierChipRefs.current.forEach((el) => {
+          if (!el) return;
+          STAGE_BG_CLASSES.forEach((c) => el.classList.remove(c));
+          el.classList.add(tier.chipBg);
+          // Flip the chip's text colour against a dark chip.
+          if (tier.chipBg === "bg-ink") el.classList.add("text-sun");
+          else el.classList.remove("text-sun");
         });
 
-        if (tierIndexRef.current) {
-          tierIndexRef.current.textContent = `${activeI + 1} / ${activeTiers.length}`;
-        }
-        if (tierChipRef.current) {
-          STAGE_BG_CLASSES.forEach((c) =>
-            tierChipRef.current?.classList.remove(c),
-          );
-          tierChipRef.current.classList.add(tier.chipBg);
-          // Flip the chip's text colour against a dark chip.
-          if (tier.chipBg === "bg-ink") tierChipRef.current.classList.add("text-sun");
-          else tierChipRef.current.classList.remove("text-sun");
+        // Any slot this tier doesn't fill is blanked and hidden —
+        // otherwise the previous tier's value lingers on screen.
+        for (const panel of ["d", "m"] as const) {
+          for (let i = 0; i < statSlots; i++) {
+            const key = `${panel}-${i}`;
+            const valueEl = statValueRefs.current[key];
+            if (!valueEl) continue;
+            const labelEl = statLabelRefs.current[key];
+            const stat = tier.stats[i];
+            const wrapper = valueEl.parentElement;
+            if (stat) {
+              valueEl.textContent = stat.value;
+              if (labelEl) labelEl.textContent = stat.label;
+              if (wrapper) wrapper.style.display = "";
+            } else {
+              valueEl.textContent = "";
+              if (labelEl) labelEl.textContent = "";
+              if (wrapper) wrapper.style.display = "none";
+            }
+          }
         }
 
         const stageBg = stageBgRef.current;
@@ -317,202 +356,271 @@ export function HeroCardReel({
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [cardCount]);
+  }, [cardCount, statSlots]);
 
   const tier0 = tiers[0];
-  // Fixed slot count so the imperative updater always has a target,
-  // even for tiers declaring fewer stats than their neighbours.
-  const statSlots = Math.max(1, ...tiers.map((t) => t.stats.length));
-
   if (!tier0 || cardCount === 0) return null;
+
+  /** Stat grid, shared by both panels. `panel` keys the ref registry. */
+  const statGrid = (panel: "d" | "m") => (
+    <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+      {Array.from({ length: statSlots }).map((_, i) => {
+        const stat = tier0.stats[i];
+        return (
+          <div
+            key={i}
+            className={`flex flex-col gap-0.5 ${i >= 2 ? "col-span-2" : ""}`}
+            style={stat ? undefined : { display: "none" }}
+          >
+            <dt
+              ref={(el) => {
+                statLabelRefs.current[`${panel}-${i}`] = el;
+              }}
+              className="font-display text-[9px] tracking-widest text-muted"
+            >
+              {stat?.label ?? ""}
+            </dt>
+            <dd
+              ref={(el) => {
+                statValueRefs.current[`${panel}-${i}`] = el;
+              }}
+              className="font-display text-[12px] md:text-[13px] tracking-tight text-ink tabular-nums"
+            >
+              {stat?.value ?? ""}
+            </dd>
+          </div>
+        );
+      })}
+    </dl>
+  );
+
+  /** Tier pill + counter, shared by both panels. */
+  const tierChip = (panel: 0 | 1) => (
+    <div className="flex items-center gap-2">
+      <span
+        ref={(el) => {
+          tierChipRefs.current[panel] = el;
+        }}
+        className={`font-display text-[10px] tracking-widest border-2 border-ink px-2 py-1 rounded-sm ${tier0.chipBg}`}
+      >
+        {tierLabel}
+      </span>
+      <span
+        ref={(el) => {
+          tierIndexRefs.current[panel] = el;
+        }}
+        className="font-display text-[10px] tracking-widest text-muted tabular-nums"
+      >
+        1 / {tierCount}
+      </span>
+    </div>
+  );
 
   return (
     <section
       ref={sectionRef}
-      className="relative bg-paper px-5 sm:px-10 md:px-14 lg:px-24 py-6 md:py-10"
-      style={{ height: `min(260vh, calc(70vh + ${tierCount} * 38vh))` }}
+      className="relative bg-paper px-4 sm:px-6 md:px-8 py-6 md:py-10"
+      style={{ height: `min(240vh, calc(70vh + ${tierCount} * 32vh))` }}
       aria-label={ariaLabel}
     >
-      {intro ? <div className="mb-6 md:mb-8">{intro}</div> : null}
-      <div className="sticky top-[15vh] h-[70vh] overflow-hidden flex flex-col rounded-xl border-[3px] border-ink bg-paper-strong">
-        {/* Tier-tinted backdrop */}
+      {/* Matches the max-width every other section on the page uses —
+          without it the stage stretched to the full viewport on wide
+          screens while the copy around it stayed capped, which left the
+          card fan marooned in the middle of a very empty box.
+
+          `h-full` is load-bearing: a sticky child can only stick within
+          its parent's box, so an auto-height wrapper would collapse to
+          the stage's own height and the pin would end immediately. */}
+      <div className="max-w-[1300px] mx-auto h-full flex flex-col">
+        {intro ? <div className="mb-6 md:mb-8">{intro}</div> : null}
+
+        {/* Non-sticky pin range. Owns the scroll distance the stage is
+            pinned across, and is what the progress math measures — see
+            the note in the scroll handler. */}
+        <div ref={pinRangeRef} className="flex-1 min-h-0">
         <div
-          ref={stageBgRef}
-          className="absolute inset-0 bg-paper-strong transition-colors duration-500 ease-out"
-          aria-hidden="true"
-        />
+          ref={stickyRef}
+          className="sticky top-[12vh] h-[72vh] max-h-[580px] overflow-hidden flex flex-col rounded-xl border-[3px] border-ink bg-paper-strong"
+        >
+          {/* Tier-tinted backdrop */}
+          <div
+            ref={stageBgRef}
+            className={`absolute inset-0 ${tier0.bg} transition-colors duration-500 ease-out`}
+            aria-hidden="true"
+          />
 
-        {/* Right-column wash. Lives outside the grid so it spans the
-            full height of the sticky (including the header strip) —
-            otherwise the tier-tinted backdrop pokes through above the
-            aside. Desktop only.
+          {/* Binder-pocket grid. The section is "the singles wall", so the
+              space behind the fan reads as a wall of pockets rather than
+              as dead area. Cells are card-proportioned (2.5:3.5). */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 opacity-[0.12] pointer-events-none"
+            style={{
+              backgroundImage:
+                "linear-gradient(to right, var(--color-ink) 2px, transparent 2px)," +
+                "linear-gradient(to bottom, var(--color-ink) 2px, transparent 2px)",
+              backgroundSize: "76px 106px",
+            }}
+          />
+          {/* Second pass in paper. The ink grid disappears against the
+              `bg-ink` tier, and a light grid disappears against the pale
+              ones — layering both means the wall stays legible on every
+              tier without the handler having to swap it. */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 opacity-[0.10] pointer-events-none"
+            style={{
+              backgroundImage:
+                "linear-gradient(to right, var(--color-paper-strong) 2px, transparent 2px)," +
+                "linear-gradient(to bottom, var(--color-paper-strong) 2px, transparent 2px)",
+              backgroundSize: "76px 106px",
+            }}
+          />
 
-            Kept near-opaque: the panel's body copy is `text-secondary`
-            and its stat labels are `text-muted`, both of which are dark
-            browns that vanish against the `bg-ink` tier at a lighter
-            wash. The tier colour still reads through as a tint. */}
-        <div
-          aria-hidden="true"
-          className="hidden md:block absolute top-0 bottom-0 right-0 bg-paper-strong/88 backdrop-blur-[1px] pointer-events-none"
-          style={{ left: "calc(1.15 / 2 * 100%)" }}
-        />
+          {/* Right-column wash. Lives outside the grid so it spans the
+              full height of the sticky (including the header strip) —
+              otherwise the tier-tinted backdrop pokes through above the
+              aside. Desktop only.
 
-        {/* Vertical divider that runs the full height of the sticky, so
-            the rule between stage + aside reads as one continuous line
-            rather than only appearing below the header. */}
-        <div
-          aria-hidden="true"
-          className="hidden md:block absolute top-0 bottom-0 w-[3px] bg-ink pointer-events-none z-[5]"
-          style={{ left: "calc(1.15 / 2 * 100%)" }}
-        />
+              Kept near-opaque: the panel's body copy is `text-secondary`
+              and its stat labels are `text-muted`, both of which are dark
+              browns that vanish against the `bg-ink` tier at a lighter
+              wash. The tier colour still reads through as a tint. */}
+          <div
+            aria-hidden="true"
+            className="hidden lg:block absolute top-0 bottom-0 right-0 bg-paper-strong/88 backdrop-blur-[1px] pointer-events-none"
+            style={{ left: "calc(1.1 / 2 * 100%)" }}
+          />
 
-        {/* Header strip */}
-        <div className="relative z-10 flex items-center justify-between px-4 md:px-6 pt-3 md:pt-4">
-          <span className="font-display text-[10px] tracking-widest text-ink bg-sun border-2 border-ink px-2 py-1 rounded-sm">
-            {eyebrow}
-          </span>
-          <span className="font-display text-[10px] tracking-widest text-muted hidden sm:block">
-            Scroll ↓
-          </span>
-        </div>
+          {/* Vertical divider that runs the full height of the sticky, so
+              the rule between stage + aside reads as one continuous line
+              rather than only appearing below the header. */}
+          <div
+            aria-hidden="true"
+            className="hidden lg:block absolute top-0 bottom-0 w-[3px] bg-ink pointer-events-none z-[5]"
+            style={{ left: "calc(1.1 / 2 * 100%)" }}
+          />
 
-        {/* Main content — two-up on md+, stacked on mobile */}
-        <div className="relative flex-1 grid grid-cols-1 md:grid-cols-[1.15fr_0.85fr] min-h-0">
-          {/* Card stage */}
-          <div className="relative [perspective:1200px] min-h-0">
-            {cards.map((card, i) => (
-              <div
-                key={`${card.id}-${i}`}
-                ref={(el) => {
-                  cardsRef.current[i] = el;
-                }}
-                className="absolute top-1/2 left-1/2 will-change-transform pointer-events-auto"
-                style={{
-                  transform: "translate(-50%, -50%)",
-                  transition:
-                    "transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 140ms linear",
-                }}
-              >
-                <CardImage
-                  src={card.images.large}
-                  alt={card.name}
-                  size="md"
-                  rarity={card.rarity}
-                />
-                <div className="absolute left-1/2 -bottom-6 -translate-x-1/2 whitespace-nowrap">
-                  <span className="font-display text-[9px] tracking-widest bg-ink text-paper-strong px-1.5 py-0.5 rounded-sm border border-ink">
-                    {(card.rarity ?? "Promo").toUpperCase()}
-                  </span>
-                </div>
-              </div>
-            ))}
+          {/* Header strip */}
+          <div className="relative z-10 flex items-center justify-between px-4 md:px-6 pt-3 md:pt-4">
+            <span className="font-display text-[10px] tracking-widest text-ink bg-sun border-2 border-ink px-2 py-1 rounded-sm">
+              {eyebrow}
+            </span>
+            <span className="font-display text-[10px] tracking-widest text-ink/60 hidden sm:block">
+              Scroll ↓
+            </span>
           </div>
 
-          {/* DESKTOP info panel — hidden on mobile. */}
-          <aside className="hidden md:flex relative flex-col justify-center gap-4 px-6 lg:px-10 py-6">
-            <div className="flex items-center gap-2">
-              <span
-                ref={tierChipRef}
-                className="font-display text-[10px] tracking-widest border-2 border-ink px-2 py-1 rounded-sm bg-paper-strong"
-              >
-                {tierLabel}
-              </span>
-              <span
-                ref={tierIndexRef}
-                className="font-display text-[10px] tracking-widest text-muted tabular-nums"
-              >
-                1 / {tierCount}
-              </span>
+          {/* Main content — two-up on md+, stacked on mobile */}
+          <div className="relative flex-1 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] min-h-0">
+            {/* Card stage. The inner wrapper scales the whole fan so one
+                card size serves every breakpoint — the cards themselves
+                are absolutely positioned, so scaling their container is
+                cheaper than swapping `size` and re-fetching images. */}
+            <div className="relative [perspective:1200px] min-h-0 overflow-hidden">
+              {/* Below lg the layout is stacked, so the stage's HEIGHT is
+                  the binding constraint; from lg it splits two-up and the
+                  stage's WIDTH binds instead — hence the step down at lg
+                  before climbing again on wider screens. */}
+              <div className="absolute inset-0 origin-center -translate-y-[3%] scale-[0.58] sm:scale-[0.64] md:scale-[0.68] lg:translate-y-0 lg:scale-[0.76] xl:scale-[0.9] 2xl:scale-100">
+                {cards.map((card, i) => (
+                  <div
+                    key={`${card.id}-${i}`}
+                    ref={(el) => {
+                      cardsRef.current[i] = el;
+                    }}
+                    className="absolute top-1/2 left-1/2 will-change-transform pointer-events-auto"
+                    style={{
+                      transform: "translate(-50%, -50%)",
+                      transition:
+                        "transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 140ms linear",
+                    }}
+                  >
+                    <CardImage
+                      src={card.images.large}
+                      alt={card.name}
+                      size="lg"
+                      rarity={card.rarity}
+                    />
+                    <div className="absolute left-1/2 -bottom-8 -translate-x-1/2 whitespace-nowrap">
+                      <span className="font-display text-[11px] tracking-widest bg-ink text-paper-strong px-2 py-1 rounded-sm border-2 border-ink">
+                        {(card.rarity ?? "Promo").toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <h2 className="font-display leading-[0.9] tracking-tight break-words text-[clamp(32px,_4.5vw,_64px)]">
+            {/* DESKTOP (lg+) info panel — content distributed top-to-bottom so a
+                tall stage doesn't leave it floating in the middle. */}
+            <aside className="hidden lg:flex relative flex-col justify-between gap-5 px-6 lg:px-9 py-6 lg:py-8">
+              {tierChip(0)}
+
+              <div className="flex flex-col gap-3">
+                <h2 className="font-display leading-[0.88] tracking-tight break-words text-[clamp(34px,_4vw,_60px)]">
+                  <span
+                    ref={(el) => {
+                      labelRefs.current[0] = el;
+                    }}
+                    className={`hero-label-strong ${tier0.tint} transition-colors duration-500 ease-out`}
+                  >
+                    {tier0.label}
+                  </span>
+                </h2>
+
+                <p
+                  ref={(el) => {
+                    blurbRefs.current[0] = el;
+                  }}
+                  className="text-[13px] lg:text-[15px] leading-relaxed text-secondary max-w-[40ch]"
+                >
+                  {tier0.blurb}
+                </p>
+              </div>
+
+              <div className="pt-4 border-t-2 border-ink/15">{statGrid("d")}</div>
+            </aside>
+          </div>
+
+          {/* STACKED panel — mobile and tablet. Hidden on lg+ where the aside
+              takes over. Sits
+              on its own near-opaque plate for the same contrast reason as
+              the desktop wash, and now carries the tier counter and stats
+              that were previously desktop-only. */}
+          <div className="lg:hidden relative z-10 flex flex-col gap-2.5 px-4 pt-3 pb-4 bg-paper-strong/90 backdrop-blur-[1px] border-t-[3px] border-ink">
+            {tierChip(1)}
+            <h2 className="font-display leading-none tracking-tight text-[30px] sm:text-[36px]">
               <span
                 ref={(el) => {
-                  labelRefs.current[0] = el;
+                  labelRefs.current[1] = el;
                 }}
                 className={`hero-label-strong ${tier0.tint} transition-colors duration-500 ease-out`}
               >
                 {tier0.label}
               </span>
             </h2>
-
             <p
               ref={(el) => {
-                blurbRefs.current[0] = el;
+                blurbRefs.current[1] = el;
               }}
-              className="text-[13px] lg:text-[14px] text-secondary max-w-[38ch]"
+              className="text-[13px] leading-snug text-secondary"
             >
               {tier0.blurb}
             </p>
+            <div className="pt-2.5 border-t-2 border-ink/15">{statGrid("m")}</div>
+          </div>
 
-            <dl className="grid grid-cols-2 gap-3 pt-2 border-t-2 border-ink/15">
-              {Array.from({ length: statSlots }).map((_, i) => {
-                const stat = tier0.stats[i];
-                return (
-                  <div
-                    key={i}
-                    className={`flex flex-col gap-0.5 ${i >= 2 ? "col-span-2" : ""}`}
-                    style={stat ? undefined : { display: "none" }}
-                  >
-                    <dt
-                      ref={(el) => {
-                        statLabelRefs.current[i] = el;
-                      }}
-                      className="font-display text-[9px] tracking-widest text-muted"
-                    >
-                      {stat?.label ?? ""}
-                    </dt>
-                    <dd
-                      ref={(el) => {
-                        statValueRefs.current[i] = el;
-                      }}
-                      className="font-display text-[13px] tracking-tight text-ink tabular-nums"
-                    >
-                      {stat?.value ?? ""}
-                    </dd>
-                  </div>
-                );
-              })}
-            </dl>
-          </aside>
+          {/* Progress bar */}
+          <div className="relative z-10 h-[5px] bg-ink/10">
+            <div
+              ref={progressBarRef}
+              className="absolute inset-0 bg-ocean origin-left"
+              style={{ transform: "scaleX(0)" }}
+              aria-hidden="true"
+            />
+          </div>
         </div>
-
-        {/* MOBILE wordmark + blurb — hidden on md+ since the panel covers
-            it. Sits on its own near-opaque plate for the same contrast
-            reason as the desktop wash: without it, the dark body copy is
-            unreadable on the `bg-ink` tier. */}
-        <div className="md:hidden relative z-10 flex flex-col items-center gap-1 px-4 pt-3 pb-4 text-center bg-paper-strong/88 backdrop-blur-[1px]">
-          <span className="font-display text-[9px] tracking-widest text-muted">
-            {tierLabel}
-          </span>
-          <h2 className="font-display leading-none tracking-tight text-[24px] sm:text-[32px]">
-            <span
-              ref={(el) => {
-                labelRefs.current[1] = el;
-              }}
-              className={`hero-label-strong ${tier0.tint} transition-colors duration-500 ease-out`}
-            >
-              {tier0.label}
-            </span>
-          </h2>
-          <p
-            ref={(el) => {
-              blurbRefs.current[1] = el;
-            }}
-            className="text-[12px] text-secondary max-w-[48ch] mx-auto"
-          >
-            {tier0.blurb}
-          </p>
-        </div>
-
-        {/* Progress bar */}
-        <div className="relative z-10 h-[4px] bg-ink/10">
-          <div
-            ref={progressBarRef}
-            className="absolute inset-0 bg-ocean origin-left"
-            style={{ transform: "scaleX(0)" }}
-            aria-hidden="true"
-          />
         </div>
       </div>
     </section>

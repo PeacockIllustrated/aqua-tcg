@@ -24,7 +24,10 @@ export function HeroLockup({ content }: { content: Record<string, string> }) {
         }}
       />
 
-      <div className="relative max-w-[1300px] mx-auto px-5 md:px-8 py-10 md:py-16 lg:py-20 flex flex-col md:flex-row items-center gap-8 md:gap-12">
+      {/* `justify-center` matters on wide screens: the mark and the copy
+          column are both fixed-ish widths, so left-packing them inside a
+          1300px container left a dead third on the right. */}
+      <div className="relative max-w-[1300px] mx-auto px-5 md:px-8 py-10 md:py-16 lg:py-20 flex flex-col md:flex-row md:justify-center items-center gap-8 md:gap-12 lg:gap-16">
         {/* LOGO MARK */}
         <div className="relative shrink-0 w-[230px] h-[230px] sm:w-[260px] sm:h-[260px] md:w-[320px] md:h-[320px] flex items-center justify-center">
           <div
