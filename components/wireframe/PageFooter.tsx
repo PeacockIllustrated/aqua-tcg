@@ -1,15 +1,17 @@
-"use client";
-
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
 import { WaveDivider } from "@/components/cardbuy/WaveDivider";
 
+/**
+ * Footer for the platform routes (shop, buylist, binder, submissions).
+ *
+ * The public site has its own footer in `components/marketing/SiteFooter`;
+ * this one only ever renders inside `(seller)/layout.tsx`, which is why
+ * it no longer needs the `usePathname` guard that kept it off `/admin/*`
+ * back when it lived in the root layout — and no longer needs to be a
+ * client component at all.
+ */
 export function PageFooter() {
-  const pathname = usePathname() ?? "";
-  // Admin is its own self-contained portal — no marketing footer.
-  if (pathname.startsWith("/admin")) return null;
-
   return (
     <footer className="bg-ink text-paper-strong mt-12">
       <WaveDivider fill="var(--color-ink)" height={32} />
@@ -30,11 +32,18 @@ export function PageFooter() {
           </span>
         </div>
         <nav className="flex flex-wrap gap-x-5 gap-y-2 font-display text-[11px] tracking-wider">
-          <Link href="/shop" className="hover:text-ocean">Shop</Link>
-          <Link href="/search" className="hover:text-sun">Sell to us</Link>
-          <Link href="#" className="hover:text-wave">Shipping &amp; returns</Link>
-          <Link href="#" className="hover:text-wave">Terms</Link>
-          <Link href="#" className="hover:text-wave">Contact</Link>
+          <Link href="/shop" className="hover:text-ocean">
+            Shop
+          </Link>
+          <Link href="/search" className="hover:text-sun">
+            Sell to us
+          </Link>
+          <Link href="/binder" className="hover:text-wave">
+            Binder
+          </Link>
+          <Link href="/" className="hover:text-wave">
+            Public site
+          </Link>
         </nav>
       </div>
     </footer>

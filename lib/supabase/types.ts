@@ -259,6 +259,41 @@ export interface LewisOrderItem {
   created_at: string;
 }
 
+// ------------------------------------------------------------------
+// Marketing CMS (migration 0014)
+// ------------------------------------------------------------------
+
+export type AnnouncementTone = "ocean" | "wave" | "sun" | "ink";
+
+/**
+ * A single copy override. The *set* of valid keys lives in
+ * `lib/marketing/content.ts` — this table only stores what Lewis has
+ * changed, so a missing row means "use the code default".
+ */
+export interface LewisSiteContent {
+  key: string;
+  value: string;
+  updated_at: string;
+  updated_by: string | null;
+}
+
+export interface LewisAnnouncement {
+  id: string;
+  title: string;
+  body: string | null;
+  href: string | null;
+  cta_label: string | null;
+  tone: AnnouncementTone;
+  is_active: boolean;
+  /** NULL on either side means the window is unbounded on that end. */
+  starts_at: string | null;
+  ends_at: string | null;
+  sort: number;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+}
+
 /**
  * Minimal Database shape consumed by `createClient<Database>()`. We only
  * enumerate the tables this phase touches. Phase 2b extends it when
@@ -358,6 +393,28 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<LewisOrderItem>;
+        Relationships: [];
+      };
+      lewis_site_content: {
+        Row: LewisSiteContent;
+        Insert: Pick<LewisSiteContent, "key" | "value"> & {
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: Partial<LewisSiteContent>;
+        Relationships: [];
+      };
+      lewis_announcements: {
+        Row: LewisAnnouncement;
+        Insert: Omit<
+          LewisAnnouncement,
+          "id" | "created_at" | "updated_at"
+        > & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<LewisAnnouncement>;
         Relationships: [];
       };
     };

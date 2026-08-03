@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Archivo_Black, Inter } from "next/font/google";
 import "./globals.css";
-import { PageFooter } from "@/components/wireframe/PageFooter";
 
 const archivoBlack = Archivo_Black({
   weight: "400",
@@ -52,9 +51,14 @@ export default function RootLayout({
       lang="en"
       className={`${archivoBlack.variable} ${inter.variable} h-full`}
     >
+      {/*
+        Footers are per-route-group, not global: the public site gets
+        `SiteFooter` from `(marketing)/layout.tsx`, the platform gets
+        `PageFooter` from `(seller)/layout.tsx`, and admin has none.
+        A single root footer would double up on the marketing pages.
+      */}
       <body className="min-h-full flex flex-col bg-paper text-ink font-sans text-[15px] leading-[1.55]">
         <main className="flex-1 overflow-x-clip">{children}</main>
-        <PageFooter />
       </body>
     </html>
   );

@@ -20,9 +20,29 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // Without credentials, `createServerClient` throws — which would 500
+  // every request, including the public marketing page. That page is
+  // built to fall back to its in-code copy precisely so it survives an
+  // unconfigured environment, so bail out here rather than blow up.
+  //
+  // Fails CLOSED on /admin: no credentials means no way to verify a
+  // role, so the portal is unreachable rather than unguarded.
+  if (!supabaseUrl || !supabaseKey) {
+    if (request.nextUrl.pathname.startsWith("/admin")) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/login";
+      redirectUrl.search = `?next=${encodeURIComponent(request.nextUrl.pathname)}`;
+      return NextResponse.redirect(redirectUrl);
+    }
+    return response;
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll() {

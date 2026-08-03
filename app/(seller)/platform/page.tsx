@@ -28,14 +28,15 @@ const HERO_CARD_IDS = ["base1-58", "base1-29", "base1-17", "base1-4", "basep-8"]
 /** Featured pack for the homepage spotlight. Swap the id to rotate. */
 const SPOTLIGHT_PACK_IDS = ["base1", "swsh12pt5", "sv1", "neo1"] as const;
 
-type SearchParams = Promise<{ error?: string }>;
-
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
-  const sp = await searchParams;
+/**
+ * The platform front door — buy/sell entry points, featured stock and
+ * the pack spotlight.
+ *
+ * Moved off `/` when the marketing one-pager took that route. Still
+ * fully functional and reachable at `/platform`; deliberately not
+ * linked from the public site's navigation.
+ */
+export default async function PlatformHomePage() {
   const featured = getFeaturedListings(4);
   const heroCards = HERO_CARD_IDS
     .map((id) => getCardById(id))
@@ -49,13 +50,6 @@ export default async function HomePage({
 
   return (
     <div className="flex flex-col">
-      {sp.error === "admin_required" ? (
-        <div className="border-b-[3px] border-ink bg-warn text-paper-strong px-4 py-2 font-display text-[12px] tracking-wider text-center">
-          That area&apos;s admin-only. Ask Aqua TCG to promote your account if
-          you think that&apos;s wrong.
-        </div>
-      ) : null}
-
       {/* BRAND IDENTITY HERO — Aqua TCG mark + wordmark + tagline on
           the brand-ocean ground, with a pop-art sunburst behind the
           logo and a wave seam into the content below. */}
@@ -212,9 +206,7 @@ export default async function HomePage({
         </div>
       </section>
 
-      {heroReady ? (
-        <HeroCardReel cards={heroCards as [Card, Card, Card, Card, Card]} />
-      ) : null}
+      {heroReady ? <HeroCardReel cards={heroCards} /> : null}
 
       {/* PACK SPOTLIGHT — showcases the new sell-side flow with a real
           foil pack visual. Single featured pack on the left, CTA stack

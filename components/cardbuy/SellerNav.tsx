@@ -23,7 +23,9 @@ export async function SellerNav() {
   return (
     <header className="border-b-[3px] border-ink bg-paper-strong sticky top-0 z-30">
       <div className="max-w-[1300px] mx-auto px-3 md:px-4 py-2.5 md:py-3 flex items-center justify-between gap-2 md:gap-6">
-        <Link href="/" className="flex items-center gap-2 shrink-0">
+        {/* `/` is the public marketing site — the platform's own front
+            door is `/platform`. */}
+        <Link href="/platform" className="flex items-center gap-2 shrink-0">
           <Image
             src="/aqua-tcg.svg"
             alt=""
