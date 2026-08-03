@@ -1,8 +1,14 @@
 import { WaveDivider } from "@/components/cardbuy/WaveDivider";
+import { PhotoFrame } from "@/components/marketing/PhotoFrame";
+import { resolvePhoto } from "@/lib/marketing/media";
 
 /**
  * The founders' story, on the ocean ground so it breaks up the run of
  * cream sections either side of it.
+ *
+ * The left column used to be a chip and a heading against a lot of empty
+ * blue on desktop. It now carries the founders' portrait, which is the one
+ * photograph on the page that genuinely has to be of specific people.
  */
 export function StoryPanel({ content }: { content: Record<string, string> }) {
   const paragraphs = [
@@ -10,6 +16,8 @@ export function StoryPanel({ content }: { content: Record<string, string> }) {
     content["story.body_2"],
     content["story.body_3"],
   ].filter((p) => p?.trim());
+
+  const founders = resolvePhoto(content, "founders");
 
   return (
     <section id="story" className="bg-ocean scroll-mt-24 relative">
@@ -34,6 +42,15 @@ export function StoryPanel({ content }: { content: Record<string, string> }) {
             <br />
             <span className="text-sun">FROM GATESHEAD</span>
           </h2>
+
+          <PhotoFrame
+            photo={founders}
+            tone="soft"
+            badge
+            caption="JAMES & LEWIS"
+            className="mt-1 max-w-[380px] md:max-w-none"
+            sizes="(max-width: 768px) 100vw, 40vw"
+          />
         </div>
 
         <div className="pop-static bg-paper-strong rounded-lg p-5 md:p-7 flex flex-col gap-4">

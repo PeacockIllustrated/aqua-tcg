@@ -18,7 +18,7 @@
  * them in; the admin screen flags them so they don't ship as guesses.
  */
 
-export type FieldKind = "text" | "textarea" | "url" | "email";
+export type FieldKind = "text" | "textarea" | "url" | "email" | "image";
 
 export type ContentField = {
   key: string;
@@ -44,6 +44,7 @@ export const GROUPS = [
   "Our story",
   "Visit us",
   "Contact & social",
+  "Photography",
   "Footer",
 ] as const;
 
@@ -300,6 +301,105 @@ export const FIELDS: ContentField[] = [
     group: "Contact & social",
     value: "",
     unverified: true,
+  },
+
+  // ---------------------------------------------------------------
+  // Photography
+  //
+  // Every slot on the public page. All default to empty: Aqua TCG's own
+  // photographs could not be retrieved when this was built (aquatcg.co.uk
+  // is unreachable from the build environment — the egress proxy refuses
+  // the connection), so nothing was taken from the live site.
+  //
+  // An empty slot is NOT a hole. `PhotoFrame` renders a designed panel —
+  // wave crests, dot grid, the slot's title in the display face — so the
+  // page looks finished either way. Setting a source upgrades the panel to
+  // the real photograph, framed and duotoned into the palette.
+  //
+  // Sources may be a path under `/public` (preferred — these are optimised
+  // by Next) or a full https:// URL (served as-is, unoptimised, so any host
+  // works without a config change).
+  // ---------------------------------------------------------------
+  {
+    key: "photo.hero_src",
+    label: "Hero backdrop · image",
+    help: "Optional. A wide interior shot sits behind the hero, darkened so the wordmark stays legible. Left empty, the hero is the flat ocean ground it is now.",
+    kind: "image",
+    group: "Photography",
+    value: "",
+    unverified: true,
+  },
+  {
+    key: "photo.hero_alt",
+    label: "Hero backdrop · alt text",
+    help: "Decorative by default. Only needed if the backdrop carries meaning of its own.",
+    kind: "text",
+    group: "Photography",
+    value: "",
+  },
+  {
+    key: "photo.wall_src",
+    label: "Singles wall · image",
+    help: "The full-bleed band under the wall section. A wide shot of the wall itself works best — it is the widest crop on the page (21:9).",
+    kind: "image",
+    group: "Photography",
+    value: "",
+    unverified: true,
+  },
+  {
+    key: "photo.wall_alt",
+    label: "Singles wall · alt text",
+    kind: "text",
+    group: "Photography",
+    value: "The singles wall in the Aqua TCG shop",
+  },
+  {
+    key: "photo.counter_src",
+    label: "At the counter · image",
+    help: "Sits beside the buy · sell · trade copy. A valuation happening across the counter reads better than an empty shop.",
+    kind: "image",
+    group: "Photography",
+    value: "",
+    unverified: true,
+  },
+  {
+    key: "photo.counter_alt",
+    label: "At the counter · alt text",
+    kind: "text",
+    group: "Photography",
+    value: "Cards being valued at the Aqua TCG counter",
+  },
+  {
+    key: "photo.founders_src",
+    label: "James & Lewis · image",
+    help: "Portrait crop (4:5) in the story panel. A photo of the two of them in the shop.",
+    kind: "image",
+    group: "Photography",
+    value: "",
+    unverified: true,
+  },
+  {
+    key: "photo.founders_alt",
+    label: "James & Lewis · alt text",
+    kind: "text",
+    group: "Photography",
+    value: "James Leather and Lewis Millen, founders of Aqua TCG",
+  },
+  {
+    key: "photo.storefront_src",
+    label: "The shopfront · image",
+    help: "Sits in “Visit us”. The unit as someone walking the Upper Green Mall would see it — signage in frame helps people find you.",
+    kind: "image",
+    group: "Photography",
+    value: "",
+    unverified: true,
+  },
+  {
+    key: "photo.storefront_alt",
+    label: "The shopfront · alt text",
+    kind: "text",
+    group: "Photography",
+    value: "The Aqua TCG shopfront at The Crescent, Metrocentre",
   },
 
   // ---------------------------------------------------------------

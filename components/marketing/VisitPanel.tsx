@@ -1,11 +1,19 @@
+import { PhotoFrame } from "@/components/marketing/PhotoFrame";
+import { resolvePhoto } from "@/lib/marketing/media";
+
 /**
  * Store details.
  *
  * Hours and postcode couldn't be confirmed when this page was built, so
  * both are optional: each block is omitted entirely rather than shipping
  * a placeholder, and both are editable from /admin/site.
+ *
+ * The shopfront photo leads the section: someone deciding whether to walk
+ * over needs to recognise the unit when they get there, and the Metrocentre
+ * is big enough that an address alone is not much help.
  */
 export function VisitPanel({ content }: { content: Record<string, string> }) {
+  const storefront = resolvePhoto(content, "storefront");
   const hours = (content["visit.hours"] ?? "")
     .split("\n")
     .map((l) => l.trim())
@@ -34,6 +42,13 @@ export function VisitPanel({ content }: { content: Record<string, string> }) {
             {content["visit.note"]}
           </p>
         </div>
+
+        <PhotoFrame
+          photo={storefront}
+          seamFill="var(--color-paper)"
+          caption="THE CRESCENT · UPPER GREEN MALL"
+          sizes="(max-width: 1300px) 100vw, 1268px"
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div className="pop-block bg-ocean text-paper-strong rounded-lg p-5 md:p-6 flex flex-col gap-3 md:col-span-2">

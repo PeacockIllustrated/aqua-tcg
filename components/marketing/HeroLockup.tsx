@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { WaveDivider } from "@/components/cardbuy/WaveDivider";
+import { resolvePhoto } from "@/lib/marketing/media";
 
 /**
  * Brand hero — the Aqua TCG mark on the ocean ground, with a rotating
@@ -11,8 +12,39 @@ import { WaveDivider } from "@/components/cardbuy/WaveDivider";
  * than into the buylist.
  */
 export function HeroLockup({ content }: { content: Record<string, string> }) {
+  const backdrop = resolvePhoto(content, "heroBackdrop");
+
   return (
     <section className="bg-ocean relative overflow-hidden">
+      {/* Optional interior photograph behind the ocean ground.
+          Off unless a source is set, so the default hero is exactly the flat
+          field it has always been. When on, it is held well back — heavily
+          multiplied into the ocean and darkened at the edges — because the
+          wordmark's contrast against this ground is the one thing on the
+          page that must not soften. */}
+      {backdrop.src ? (
+        <div aria-hidden="true" className="absolute inset-0">
+          <Image
+            src={backdrop.src}
+            alt=""
+            fill
+            sizes="100vw"
+            priority
+            unoptimized={backdrop.external}
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-ocean mix-blend-color" />
+          <div className="absolute inset-0 bg-ocean/70" />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(ellipse at center, transparent 35%, rgba(10,10,10,0.45) 100%)",
+            }}
+          />
+        </div>
+      ) : null}
+
       {/* Decorative pop-art dot grid */}
       <div
         aria-hidden="true"

@@ -1,9 +1,17 @@
+import { PhotoFrame } from "@/components/marketing/PhotoFrame";
+import { resolvePhoto } from "@/lib/marketing/media";
+
 /**
  * The three ways to deal with Aqua TCG, as pop-art blocks.
  *
  * Every panel is static — no forms, no instant-offer flow. The public
  * site's job is to explain the proposition and get people through the
  * shop door, not to run a transaction.
+ *
+ * The intro runs two-up with a photograph of a valuation happening. The
+ * claim being made here — that we price against live eBay comparisons and
+ * show the working — is more convincing next to a picture of it than next
+ * to more text.
  */
 
 const PANELS = [
@@ -32,22 +40,32 @@ export function TradeTriptych({
 }: {
   content: Record<string, string>;
 }) {
+  const counter = resolvePhoto(content, "counter");
+
   return (
     <section
       id="trade"
       className="bg-paper scroll-mt-24 border-b-[3px] border-ink"
     >
       <div className="max-w-[1300px] mx-auto px-5 md:px-6 py-12 md:py-16 flex flex-col gap-8">
-        <div className="flex flex-col gap-3 max-w-[62ch]">
-          <span className="bg-ink text-paper-strong px-2 py-1 w-fit font-display text-[10px] tracking-wider">
-            Buy · sell · trade
-          </span>
-          <h2 className="font-display text-[30px] sm:text-[40px] md:text-[52px] leading-[0.95] tracking-tight">
-            Priced off live eBay UK data.
-          </h2>
-          <p className="text-[14px] md:text-[15px] text-secondary">
-            {content["trade.intro"]}
-          </p>
+        <div className="grid grid-cols-1 md:grid-cols-[1.05fr_0.95fr] gap-6 md:gap-10 items-center">
+          <div className="flex flex-col gap-3 max-w-[62ch]">
+            <span className="bg-ink text-paper-strong px-2 py-1 w-fit font-display text-[10px] tracking-wider">
+              Buy · sell · trade
+            </span>
+            <h2 className="font-display text-[30px] sm:text-[40px] md:text-[52px] leading-[0.95] tracking-tight">
+              Priced off live eBay UK data.
+            </h2>
+            <p className="text-[14px] md:text-[15px] text-secondary">
+              {content["trade.intro"]}
+            </p>
+          </div>
+
+          <PhotoFrame
+            photo={counter}
+            caption="VALUATIONS WHILE YOU WAIT"
+            sizes="(max-width: 768px) 100vw, 45vw"
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">

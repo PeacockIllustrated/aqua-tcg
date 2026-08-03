@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { HeroLockup } from "@/components/marketing/HeroLockup";
 import { TradeTriptych } from "@/components/marketing/TradeTriptych";
 import { StockGrid } from "@/components/marketing/StockGrid";
+import { ShopBand } from "@/components/marketing/ShopBand";
 import { StoryPanel } from "@/components/marketing/StoryPanel";
 import { VisitPanel } from "@/components/marketing/VisitPanel";
 import { ContactPanel } from "@/components/marketing/ContactPanel";
@@ -146,6 +147,9 @@ export default async function MarketingHomePage() {
           />
         ) : null}
       </div>
+
+      {/* The wall as 3D card art, then the wall as it actually is. */}
+      <ShopBand content={content} />
 
       <StockGrid
         content={content}

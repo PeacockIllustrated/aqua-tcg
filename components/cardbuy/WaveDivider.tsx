@@ -9,6 +9,17 @@
  *
  * Decorative only — `aria-hidden`, no pointer surface.
  */
+/**
+ * The crest path itself, on a `0 0 1200 40` viewBox.
+ *
+ * Exported so callers that need the motif at a size this component can't
+ * express — a crest stack scaled as a percentage of its parent, say — can
+ * draw it without forking the shape. `WaveDivider` remains the right choice
+ * for the ordinary fixed-height section seam.
+ */
+export const WAVE_PATH =
+  "M0,18 C150,38 280,2 440,16 C600,30 740,40 900,22 C1040,6 1140,14 1200,20 L1200,40 L0,40 Z";
+
 export function WaveDivider({
   fill = "var(--color-ocean)",
   height = 24,
@@ -32,10 +43,7 @@ export function WaveDivider({
         className="block w-full"
         style={{ height }}
       >
-        <path
-          d="M0,18 C150,38 280,2 440,16 C600,30 740,40 900,22 C1040,6 1140,14 1200,20 L1200,40 L0,40 Z"
-          fill={fill}
-        />
+        <path d={WAVE_PATH} fill={fill} />
       </svg>
     </div>
   );
