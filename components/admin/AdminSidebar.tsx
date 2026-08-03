@@ -60,6 +60,12 @@ function buildSections(counts: AdminNavCounts): NavSection[] {
       ],
     },
     {
+      title: "Marketing",
+      items: [
+        { href: "/admin/site", label: "Site content", glyph: "✎", tone: "sun" },
+      ],
+    },
+    {
       title: "Catalogue",
       items: [
         { href: "/admin/cards", label: "Cards", glyph: "▥", tone: "wave" },
@@ -236,11 +242,18 @@ function SidebarInner({
 
       <div className="border-t-2 border-paper-strong/20 px-3 py-3 flex flex-col gap-1">
         <Link
-          href="/"
+          href="/platform"
           onClick={onNavigate}
           className="font-display text-[11px] tracking-wider text-paper-strong/70 hover:text-paper-strong px-2 py-1.5"
         >
           ↩ Seller view
+        </Link>
+        <Link
+          href="/"
+          onClick={onNavigate}
+          className="font-display text-[11px] tracking-wider text-paper-strong/70 hover:text-paper-strong px-2 py-1.5"
+        >
+          ↩ Public site
         </Link>
       </div>
     </div>

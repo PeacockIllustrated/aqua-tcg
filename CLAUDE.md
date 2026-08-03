@@ -102,7 +102,11 @@ This is **spec-first agentic development**. The operator (Michael / Peacock Solu
 - **Repo:** `cardbuy` *(rename when brand is set)*
 - **DB prefix:** `cb_` on every table (e.g. `cb_cards`, `cb_submissions`)
 - **Submission reference format:** `CB-YYYY-NNNNNN` (e.g. `CB-2026-000042`)
-- **Routes:** App Router conventions. Seller-facing lives under `/`, admin under `/admin/*`.
+- **Routes:** App Router conventions, split across three route groups:
+  - `app/(marketing)/*` — the **public site**. `/` is a single-page, anchor-navigated brochure (hero · buy/sell/trade · the singles wall · what we stock · our story · visit us · contact). This is the only surface a member of the public sees, and it links to nothing else.
+  - `app/(seller)/*` — the **platform**: `/platform`, `/shop`, `/search`, `/packs`, `/binder`, `/submission/*`, `/card/[id]`. Fully functional, deliberately **not linked from the public site**.
+  - `app/admin/*` — Lewis's portal.
+- **Marketing copy is admin-editable.** Defaults live in `lib/marketing/content.ts`; `lewis_site_content` stores only overrides, so a missing row (or a missing Supabase project entirely) falls through to the code default. `lewis_announcements` drives the announcement bar. Both are managed at `/admin/site`. Adding a key to `FIELDS` is the only step needed to make a new string editable — the admin form is generated from it.
 - **Components:** PascalCase, colocated with routes when single-use, `/components/ui/*` for primitives, `/components/*` for app-level.
 - **Server actions:** `/app/_actions/*` with `'use server'`.
 - **Env vars:** `NEXT_PUBLIC_*` for client, everything else server-only.
@@ -186,6 +190,8 @@ Shipped phases (reference only):
 - `PHASE7_SHOP.md` — shopfront with real listings + cart
 
 **Note on DB prefix:** CLAUDE.md §04 says `cb_` but the live schema uses `lewis_` (operator decision, captured in auto-memory). New SQL must use `lewis_`.
+
+**Note on the public site (Aug 2026):** `/` is now the marketing one-pager, rebuilt to mirror the page set at aquatcg.co.uk while keeping the pop-art + 3D system. The platform's old homepage moved to `/platform`. Its content was reconstructed from the live site's own copy and press coverage — the site itself was unreachable from the build environment, so **opening hours, postcode, contact email and the Facebook URL are unconfirmed**; they ship blank, their blocks stay hidden, and `/admin/site` flags them as needing checking. Migration `0014_marketing_cms.sql` must be applied before any of it is editable.
 
 ---
 

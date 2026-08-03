@@ -58,6 +58,18 @@ type Props = {
   cardCount: number;
   /** Optional size preset — "sm" for dense horizontal rails. */
   size?: "sm" | "md";
+  /**
+   * Where opening the pack navigates to. Defaults to the buylist search
+   * for this set.
+   *
+   * Pass `null` for a decorative pack: the full tear-open sequence
+   * plays and then resets to a sealed wrapper without leaving the page.
+   * The marketing one-pager uses this — it wants the animation without
+   * a route into the platform.
+   */
+  href?: string | null;
+  /** Overrides the button's accessible name (e.g. for decorative use). */
+  label?: string;
 };
 
 /**
@@ -72,12 +84,23 @@ type Props = {
  *
  * Users with `prefers-reduced-motion` skip straight to navigation.
  */
-export function PackTile({ set, cardCount, size = "md" }: Props) {
+export function PackTile({
+  set,
+  cardCount,
+  size = "md",
+  href: hrefProp,
+  label,
+}: Props) {
   const router = useRouter();
   const outer = useRef<HTMLDivElement | null>(null);
   const navigated = useRef(false);
   const [opening, setOpening] = useState(false);
   const [dark, light, foil] = paletteFor(set.id);
+
+  // `undefined` means "use the default route"; `null` means "don't
+  // navigate at all". Both are falsy, so they have to be told apart
+  // explicitly rather than with a plain `??`.
+  const href = hrefProp === undefined ? `/search?set=${set.id}` : hrefProp;
 
   function onMouseMove(e: React.MouseEvent<HTMLDivElement>) {
     if (!outer.current || opening) return;
@@ -91,20 +114,30 @@ export function PackTile({ set, cardCount, size = "md" }: Props) {
 
   function onOpen() {
     if (opening || navigated.current) return;
-    navigated.current = true;
     const reduced =
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+    // Decorative mode: play the sequence, then reseal. `navigated` stays
+    // false so the pack can be opened again.
+    if (href === null) {
+      if (reduced) return;
+      setOpening(true);
+      window.setTimeout(() => setOpening(false), OPEN_DURATION_MS);
+      return;
+    }
+
+    navigated.current = true;
     if (reduced) {
-      router.push(`/search?set=${set.id}`);
+      router.push(href);
       return;
     }
     setOpening(true);
-    router.prefetch?.(`/search?set=${set.id}`);
+    router.prefetch?.(href);
     // Navigate just before the white flash peaks — the new page loads
     // under the flash so the transition feels like a cut.
     window.setTimeout(() => {
-      router.push(`/search?set=${set.id}`);
+      router.push(href);
     }, OPEN_DURATION_MS - 80);
   }
 
@@ -116,7 +149,7 @@ export function PackTile({ set, cardCount, size = "md" }: Props) {
         type="button"
         onClick={onOpen}
         className={`group block ${width} text-left`}
-        aria-label={`Open ${set.name} — ${cardCount} cards`}
+        aria-label={label ?? `Open ${set.name} — ${cardCount} cards`}
       >
         <div
           ref={outer}
