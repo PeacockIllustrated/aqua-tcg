@@ -120,7 +120,7 @@ export function FeaturedRail({ featured }: { featured: MockListing[] }) {
 
   return (
     <section
-      className="relative mt-4 mb-6 max-w-[960px] mx-auto w-full"
+      className="relative mt-14 md:mt-16 mb-6 max-w-[960px] mx-auto w-full"
       aria-label="Our featured picks"
     >
       {/* Silhouette-breaking starbursts behind the stage. Sized and

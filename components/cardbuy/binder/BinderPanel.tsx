@@ -15,6 +15,7 @@ import { CardImage } from "@/components/cardbuy/CardImage";
 import { GradedCardScanner } from "@/components/cardbuy/binder/GradedCardScanner";
 import { PacksView } from "@/components/cardbuy/binder/PacksView";
 import type { BinderPackSummary } from "@/app/_actions/binder";
+import { unwrapAction } from "@/lib/mock/preview-actions";
 import {
   addBinderEntry,
   removeBinderEntry,
@@ -1839,13 +1840,13 @@ function OwnedDetails({ owned }: { owned: BinderOwnedData }) {
     start(async () => {
       try {
         if (hasGrail && grailEntry) {
-          await setGrail(grailEntry.id, false);
+          unwrapAction(await setGrail(grailEntry.id, false));
         } else {
           // No grail set — apply to the first entry (most-recently-first
           // if sorted that way by the server).
           const target = entries[0];
           if (!target) return;
-          await setGrail(target.id, true);
+          unwrapAction(await setGrail(target.id, true));
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to set grail");
@@ -1857,7 +1858,7 @@ function OwnedDetails({ owned }: { owned: BinderOwnedData }) {
     setError(null);
     start(async () => {
       try {
-        await removeBinderEntry(entryId);
+        unwrapAction(await removeBinderEntry(entryId));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to remove");
       }
@@ -1890,14 +1891,16 @@ function OwnedDetails({ owned }: { owned: BinderOwnedData }) {
     setError(null);
     start(async () => {
       try {
-        await addBinderEntry({
-          cardId: activeCard.id,
-          variant: input.variant,
-          condition: input.condition,
-          gradingCompany: input.gradingCompany,
-          grade: input.grade,
-          quantity: input.quantity,
-        });
+        unwrapAction(
+          await addBinderEntry({
+            cardId: activeCard.id,
+            variant: input.variant,
+            condition: input.condition,
+            gradingCompany: input.gradingCompany,
+            grade: input.grade,
+            quantity: input.quantity,
+          }),
+        );
         setAddOpen(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to add");
@@ -2131,7 +2134,7 @@ function MissingDetails({
     setOnWishlist(next);
     start(async () => {
       try {
-        await toggleWishlist(wishlistCardId);
+        unwrapAction(await toggleWishlist(wishlistCardId));
       } catch (e) {
         setOnWishlist(!next);
         setError(e instanceof Error ? e.message : "Failed to update wishlist");
@@ -2149,7 +2152,7 @@ function MissingDetails({
       if (parsed !== null && (isNaN(parsed) || parsed < 0)) return;
       start(async () => {
         try {
-          await setWishlistTarget(wishlistCardId, parsed);
+          unwrapAction(await setWishlistTarget(wishlistCardId, parsed));
         } catch (e) {
           setError(
             e instanceof Error ? e.message : "Failed to save target price",

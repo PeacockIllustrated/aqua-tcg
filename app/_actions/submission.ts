@@ -2,7 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/preview-server";
+import {
+  SAMPLE_SUBMISSION_REFERENCE,
+  getSampleDraftSubmission,
+  getSampleSubmittedSubmission,
+} from "@/lib/mock/mock-customer";
+import { previewError, type PreviewError } from "@/lib/mock/preview-actions";
 import type {
   GradingCompany,
   ItemCondition,
@@ -16,18 +22,21 @@ import type {
  * One seller · one active draft. Grab it (or create it). Everything in
  * this module is gated on an authenticated session; if there's no user,
  * return `null` and let the caller redirect to `/login`.
+ *
+ * Preview (signed out with preview mode on, or no DB): reads return the
+ * sample draft / a sample submitted package from `lib/mock`, writes
+ * return a `PreviewError` and touch nothing.
  */
-async function getOrCreateDraft(): Promise<LewisSubmission | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+type Supabase = NonNullable<Awaited<ReturnType<typeof getViewer>>["supabase"]>;
 
+async function getOrCreateDraft(
+  supabase: Supabase,
+  userId: string,
+): Promise<LewisSubmission> {
   const { data: existing } = await supabase
     .from("lewis_submissions")
     .select("*")
-    .eq("seller_id", user.id)
+    .eq("seller_id", userId)
     .eq("status", "draft")
     .order("created_at", { ascending: false })
     .limit(1)
@@ -37,7 +46,7 @@ async function getOrCreateDraft(): Promise<LewisSubmission | null> {
 
   const { data: created, error } = await supabase
     .from("lewis_submissions")
-    .insert({ seller_id: user.id, status: "draft" })
+    .insert({ seller_id: userId, status: "draft" })
     .select("*")
     .single();
 
@@ -49,11 +58,9 @@ export async function getDraftSubmission(): Promise<{
   submission: LewisSubmission;
   items: LewisSubmissionItem[];
 } | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const { supabase, user, preview } = await getViewer();
+  if (preview) return getSampleDraftSubmission();
+  if (!user || !supabase) return null;
 
   const { data: submission } = await supabase
     .from("lewis_submissions")
@@ -75,8 +82,10 @@ export async function getDraftSubmission(): Promise<{
   return { submission, items: items ?? [] };
 }
 
-async function recomputeTotal(submissionId: string): Promise<number> {
-  const supabase = await createClient();
+async function recomputeTotal(
+  supabase: Supabase,
+  submissionId: string,
+): Promise<number> {
   const { data: items } = await supabase
     .from("lewis_submission_items")
     .select("offered_amount_total")
@@ -104,10 +113,13 @@ export type AddItemInput = {
   offerBreakdown?: Record<string, unknown>;
 };
 
-export async function addSubmissionItem(input: AddItemInput) {
-  const supabase = await createClient();
-  const draft = await getOrCreateDraft();
-  if (!draft) redirect(`/login?next=/card/${input.cardId}`);
+export async function addSubmissionItem(
+  input: AddItemInput,
+): Promise<void | PreviewError> {
+  const { supabase, user, preview } = await getViewer();
+  if (preview) return previewError();
+  if (!user || !supabase) redirect(`/login?next=/card/${input.cardId}`);
+  const draft = await getOrCreateDraft(supabase, user.id);
 
   const total = +(input.offeredAmountPer * input.quantity).toFixed(2);
 
@@ -126,13 +138,17 @@ export async function addSubmissionItem(input: AddItemInput) {
 
   if (error) throw new Error(`Failed to add item: ${error.message}`);
 
-  await recomputeTotal(draft.id);
+  await recomputeTotal(supabase, draft.id);
   revalidatePath("/submission");
   revalidatePath(`/card/${input.cardId}`);
 }
 
-export async function removeSubmissionItem(itemId: string) {
-  const supabase = await createClient();
+export async function removeSubmissionItem(
+  itemId: string,
+): Promise<void | PreviewError> {
+  const { supabase, preview } = await getViewer();
+  if (preview) return previewError();
+  if (!supabase) return;
   const { data: item, error: lookupErr } = await supabase
     .from("lewis_submission_items")
     .select("submission_id")
@@ -146,17 +162,19 @@ export async function removeSubmissionItem(itemId: string) {
     .eq("id", itemId);
   if (error) throw new Error(`Failed to remove item: ${error.message}`);
 
-  await recomputeTotal(item.submission_id);
+  await recomputeTotal(supabase, item.submission_id);
   revalidatePath("/submission");
 }
 
 export async function updateSubmissionItemQuantity(
   itemId: string,
   quantity: number,
-) {
+): Promise<void | PreviewError> {
   if (quantity < 1) return removeSubmissionItem(itemId);
 
-  const supabase = await createClient();
+  const { supabase, preview } = await getViewer();
+  if (preview) return previewError();
+  if (!supabase) return;
   const { data: item, error: lookupErr } = await supabase
     .from("lewis_submission_items")
     .select("submission_id, offered_amount_per")
@@ -171,14 +189,17 @@ export async function updateSubmissionItemQuantity(
     .eq("id", itemId);
   if (error) throw new Error(`Failed to update qty: ${error.message}`);
 
-  await recomputeTotal(item.submission_id);
+  await recomputeTotal(supabase, item.submission_id);
   revalidatePath("/submission");
 }
 
-export async function setPayoutMethod(method: PayoutMethod) {
-  const supabase = await createClient();
-  const draft = await getOrCreateDraft();
-  if (!draft) redirect("/login?next=/submission");
+export async function setPayoutMethod(
+  method: PayoutMethod,
+): Promise<void | PreviewError> {
+  const { supabase, user, preview } = await getViewer();
+  if (preview) return previewError();
+  if (!user || !supabase) redirect("/login?next=/submission");
+  const draft = await getOrCreateDraft(supabase, user.id);
   const { error } = await supabase
     .from("lewis_submissions")
     .update({ payout_method: method })
@@ -203,20 +224,24 @@ export type SubmitInput = {
  * Flip the current draft to `submitted`, snapshot the seller's
  * contact/payout fields onto their `lewis_users` row, and redirect
  * to the confirmation page.
+ *
+ * Preview: nothing is written; we go straight to the sample
+ * confirmation so the sell flow can be walked end to end.
  */
-export async function submitSubmission(input: SubmitInput) {
+export async function submitSubmission(
+  input: SubmitInput,
+): Promise<void | PreviewError> {
   if (!input.termsAccepted) {
-    throw new Error("Terms must be accepted to submit.");
+    return { error: "Tick the seller terms to submit." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/submission/submit");
+  const { supabase, user, preview } = await getViewer();
+  if (preview) {
+    redirect(`/submission/confirmation/${SAMPLE_SUBMISSION_REFERENCE}`);
+  }
+  if (!user || !supabase) redirect("/login?next=/submission/submit");
 
-  const draft = await getOrCreateDraft();
-  if (!draft) redirect("/login?next=/submission/submit");
+  const draft = await getOrCreateDraft(supabase, user.id);
 
   // Snapshot user profile for future submissions.
   await supabase
@@ -261,7 +286,11 @@ export async function getSubmissionByReference(reference: string): Promise<
     }
   | null
 > {
-  const supabase = await createClient();
+  // Signed-out visitors (or no DB) get a sample package for any ref —
+  // RLS would hide a real submission from them anyway.
+  const { supabase, preview } = await getViewer();
+  if (preview || !supabase) return getSampleSubmittedSubmission(reference);
+
   const { data: submission } = await supabase
     .from("lewis_submissions")
     .select("*")

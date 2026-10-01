@@ -12,6 +12,7 @@ import type {
 import { computeMockOffer, formatGBP } from "@/lib/mock/mock-offer";
 import { Button, Field, Select } from "@/components/ui/Form";
 import { addSubmissionItem } from "@/app/_actions/submission";
+import { unwrapAction } from "@/lib/mock/preview-actions";
 
 const CONDITIONS: Condition[] = ["NM", "LP", "MP", "HP", "DMG"];
 const COMPANIES: GradingCompany[] = ["PSA", "CGC", "BGS", "SGC", "ACE"];
@@ -72,7 +73,7 @@ export function OfferBuilder({
     setAdded(false);
     startTransition(async () => {
       try {
-        await addSubmissionItem({
+        const result = await addSubmissionItem({
           cardId: card.id,
           variant,
           condition: variant === "raw" ? condition : undefined,
@@ -92,6 +93,7 @@ export function OfferBuilder({
             grade: variant === "graded" ? grade : null,
           },
         });
+        unwrapAction(result);
         setAdded(true);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to add");
@@ -211,9 +213,10 @@ export function OfferBuilder({
             {formatGBP(offer.offerGbp * qty)}
           </div>
           <div className="text-[11px] text-secondary leading-snug">
-            Market baseline {formatGBP(offer.baselineGbp)} ·{" "}
-            {offer.multiplierLabel} · {offer.marginLabel} ={" "}
-            {formatGBP(offer.offerGbp)} per card
+            {/* The baseline × multiplier × margin breakdown stays in the
+                admin panel; sellers just see the per-card number. */}
+            {qty > 1 ? `${formatGBP(offer.offerGbp)} per card · ` : ""}
+            Based on current market prices for this condition.
           </div>
 
           {offer.belowMin ? (
@@ -258,13 +261,13 @@ export function OfferBuilder({
       {added ? (
         <div className="bg-tint/20 border-2 border-ink rounded-md px-3 py-3 flex items-center justify-between gap-3">
           <span className="font-display text-[13px] tracking-tight">
-            Added to submission ✓
+            Added to your sale ✓
           </span>
           <Link
             href="/submission"
             className="font-display text-[11px] tracking-wider underline underline-offset-4 decoration-2 hover:text-brand"
           >
-            View submission →
+            View your sale →
           </Link>
         </div>
       ) : isAuthenticated ? (
@@ -274,7 +277,7 @@ export function OfferBuilder({
           className="w-full"
           onClick={handleAdd}
         >
-          {pending ? "Adding…" : "Add to submission →"}
+          {pending ? "Adding…" : "Add to my sale →"}
         </Button>
       ) : (
         <Link

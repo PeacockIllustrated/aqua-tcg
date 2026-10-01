@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/Form";
+import { Button, LinkButton } from "@/components/ui/Form";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/Table";
 import {
   removeFromCart,
@@ -74,9 +74,7 @@ export function CartView() {
     return (
       <div className="pop-card rounded-md p-12 text-center flex flex-col gap-4 items-center">
         <span className="font-display text-[24px]">Your basket is empty</span>
-        <Link href="/shop">
-          <Button>Browse the shop</Button>
-        </Link>
+        <LinkButton href="/shop">Browse the shop</LinkButton>
       </div>
     );
   }
@@ -93,9 +91,7 @@ export function CartView() {
     return (
       <div className="pop-card rounded-md p-12 text-center flex flex-col gap-4 items-center">
         <span className="font-display text-[24px]">Your basket is empty</span>
-        <Link href="/shop">
-          <Button>Browse the shop</Button>
-        </Link>
+        <LinkButton href="/shop">Browse the shop</LinkButton>
       </div>
     );
   }
@@ -275,11 +271,15 @@ export function CartView() {
               Reduce any over-stock lines before checking out.
             </p>
           ) : null}
-          <Link href="/shop/checkout">
-            <Button size="lg" className="w-full" disabled={anyOver}>
+          {anyOver ? (
+            <Button size="lg" disabled className="w-full">
               Continue to checkout →
             </Button>
-          </Link>
+          ) : (
+            <LinkButton href="/shop/checkout" size="lg" className="w-full">
+              Continue to checkout →
+            </LinkButton>
+          )}
         </div>
       </section>
     </>

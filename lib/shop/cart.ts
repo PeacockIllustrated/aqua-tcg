@@ -99,6 +99,16 @@ function getServerSnapshot(): string {
   return "[]";
 }
 
+function subscribeNoop(): () => void {
+  return () => {};
+}
+function getHydratedSnapshot(): boolean {
+  return true;
+}
+function getHydratedServerSnapshot(): boolean {
+  return false;
+}
+
 export function useCart(): {
   lines: CartLine[];
   totalQty: number;
@@ -123,8 +133,15 @@ export function useCart(): {
       return [];
     }
   }, [raw]);
-  // Hydrated once the server snapshot has been replaced by the real one.
-  const hydrated = typeof window !== "undefined";
+  // Hydration-safe: false on the server AND during the client's
+  // hydration pass (getServerSnapshot), true on every render after.
+  // A bare `typeof window` check renders differently on the client's
+  // first pass and causes a hydration mismatch.
+  const hydrated = useSyncExternalStore(
+    subscribeNoop,
+    getHydratedSnapshot,
+    getHydratedServerSnapshot,
+  );
   const totalQty = lines.reduce((s, l) => s + l.qty, 0);
   return { lines, totalQty, hydrated };
 }

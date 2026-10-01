@@ -4,8 +4,17 @@ import Link from "next/link";
 import { Annotation } from "@/components/wireframe/Annotation";
 import { getSubmissionByReference } from "@/app/_actions/submission";
 import { formatGBP } from "@/lib/mock/mock-offer";
+import { getViewer } from "@/lib/preview-server";
+import { PreviewBanner } from "@/components/preview/PreviewBanner";
+
+export async function generateMetadata({ params }: { params: Params }) {
+  const { ref } = await params;
+  return { title: `Sale ${ref}` };
+}
 
 type Params = Promise<{ ref: string }>;
+
+export const dynamic = "force-dynamic";
 
 export default async function ConfirmationPage({
   params,
@@ -13,13 +22,21 @@ export default async function ConfirmationPage({
   params: Params;
 }) {
   const { ref } = await params;
-  const result = await getSubmissionByReference(ref);
+  // Preview: getSubmissionByReference returns a sample for any ref.
+  const [{ preview }, result] = await Promise.all([
+    getViewer(),
+    getSubmissionByReference(ref),
+  ]);
   if (!result) notFound();
 
   const { submission, items } = result;
   const totalCards = items.reduce((s, i) => s + i.quantity, 0);
 
   return (
+    <>
+    {preview ? (
+      <PreviewBanner next={`/submission/confirmation/${ref}`} />
+    ) : null}
     <div className="max-w-[900px] mx-auto px-4 py-10 flex flex-col gap-8">
       <header className="pop-block bg-highlight rounded-lg p-6 flex flex-col gap-3">
         <span className="bg-ink text-paper-strong w-fit px-2 py-1 font-display text-[10px] tracking-wider">
@@ -29,7 +46,7 @@ export default async function ConfirmationPage({
           {submission.reference}
         </h1>
         <p className="text-[14px]">
-          Thanks — your submission is logged with a total offer of{" "}
+          Thanks — your sale is logged with a total offer of{" "}
           <strong className="font-display tabular-nums">
             {formatGBP(Number(submission.total_offered ?? 0))}
           </strong>{" "}
@@ -80,10 +97,11 @@ export default async function ConfirmationPage({
         <a href={`mailto:${brand.supportEmail}`} className="underline">{brand.supportEmail}</a> and quote{" "}
         {submission.reference}.{" "}
         <Link href="/packs" className="underline underline-offset-4 decoration-2">
-          Build another submission →
+          Start another sale →
         </Link>
       </footer>
     </div>
+    </>
   );
 }
 

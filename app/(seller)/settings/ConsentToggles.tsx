@@ -6,6 +6,7 @@ import {
   type ConsentField,
   type ConsentSnapshot,
 } from "@/app/_actions/consent";
+import { unwrapAction } from "@/lib/mock/preview-actions";
 
 type ToggleRow = {
   field: ConsentField;
@@ -49,7 +50,7 @@ export function ConsentToggles({ initial }: { initial: ConsentSnapshot }) {
     setState((s) => ({ ...s, [field]: next }));
     start(async () => {
       try {
-        await updateConsent(field, next);
+        unwrapAction(await updateConsent(field, next));
       } catch (e) {
         setState((s) => ({ ...s, [field]: !next }));
         setError(e instanceof Error ? e.message : "Failed to save");
@@ -114,7 +115,7 @@ export function ConsentToggles({ initial }: { initial: ConsentSnapshot }) {
             </span>
           </span>
           <span className="text-[11px] text-secondary leading-snug">
-            Submission + order confirmations, shipping updates, payout
+            Sale and order confirmations, shipping updates, payout
             notifications. Cannot be disabled without deleting your account.
           </span>
         </span>

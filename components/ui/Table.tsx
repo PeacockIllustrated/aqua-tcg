@@ -6,7 +6,7 @@ export function Table({
   ...rest
 }: HTMLAttributes<HTMLTableElement> & { children: ReactNode }) {
   return (
-    <div className="border-[3px] border-ink rounded-md overflow-x-auto bg-paper-strong shadow-[3px_3px_0_0_var(--color-ink)]">
+    <div className="max-w-full min-w-0 border-[3px] border-ink rounded-md overflow-x-auto bg-paper-strong shadow-[3px_3px_0_0_var(--color-ink)]">
       <table
         {...rest}
         className={`w-full border-collapse text-[13px] font-sans tabular-nums ${className}`.trim()}

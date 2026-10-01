@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { uploadGradedScan } from "@/app/_actions/graded-scan";
+import { unwrapAction } from "@/lib/mock/preview-actions";
 import type { GradingCompany, Grade } from "@/lib/supabase/types";
 
 /* ─────────────────────────────────────────────────────────────────
@@ -198,7 +199,7 @@ export function GradedCardScanner({
         fd.append("cardId", cardId);
         fd.append("gradingCompany", gradingCompany);
         fd.append("grade", grade);
-        await uploadGradedScan(fd);
+        unwrapAction(await uploadGradedScan(fd));
         onSuccess?.();
         onClose();
       } catch (e) {

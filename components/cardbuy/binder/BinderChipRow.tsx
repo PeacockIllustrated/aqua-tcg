@@ -7,6 +7,7 @@ import {
   removeBinderEntry,
   toggleWishlist,
 } from "@/app/_actions/binder";
+import { unwrapAction } from "@/lib/mock/preview-actions";
 import { GradedCardScanner } from "@/components/cardbuy/binder/GradedCardScanner";
 import type {
   GradingCompany,
@@ -76,7 +77,7 @@ export function BinderChipRow({
     setOnWishlist(next);
     start(async () => {
       try {
-        await toggleWishlist(cardId);
+        unwrapAction(await toggleWishlist(cardId));
       } catch (e) {
         setOnWishlist(!next);
         setError(e instanceof Error ? e.message : "Failed to update wishlist");
@@ -218,14 +219,16 @@ function AddDrawer({
     setError(null);
     start(async () => {
       try {
-        await addBinderEntry({
-          cardId,
-          variant,
-          condition: variant === "raw" ? condition : undefined,
-          gradingCompany: variant === "graded" ? gradingCompany : undefined,
-          grade: variant === "graded" ? grade : undefined,
-          quantity,
-        });
+        unwrapAction(
+          await addBinderEntry({
+            cardId,
+            variant,
+            condition: variant === "raw" ? condition : undefined,
+            gradingCompany: variant === "graded" ? gradingCompany : undefined,
+            grade: variant === "graded" ? grade : undefined,
+            quantity,
+          }),
+        );
         onClose();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to add");
@@ -387,7 +390,7 @@ function CopiesDrawer({
     setError(null);
     start(async () => {
       try {
-        await removeBinderEntry(entryId);
+        unwrapAction(await removeBinderEntry(entryId));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to remove");
       }

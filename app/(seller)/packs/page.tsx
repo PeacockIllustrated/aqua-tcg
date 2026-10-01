@@ -70,7 +70,7 @@ export default function PacksPage() {
               href="/submission"
               className="inline-flex items-center justify-center border-2 border-ink bg-paper-strong text-ink px-3 py-1.5 font-display text-[11px] tracking-wider uppercase rounded-md hover:bg-tint"
             >
-              My submission
+              My sale
             </Link>
           </div>
         </div>

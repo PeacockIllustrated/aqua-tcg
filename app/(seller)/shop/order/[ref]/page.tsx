@@ -4,7 +4,14 @@ import { notFound } from "next/navigation";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/Table";
 import { getOrderByReference } from "@/app/_actions/shop";
 import { formatGBP } from "@/lib/mock/mock-offer";
+import { getViewer } from "@/lib/preview-server";
+import { PreviewBanner } from "@/components/preview/PreviewBanner";
 import { PaymentsComingSoonModal } from "./PaymentsComingSoonModal";
+
+export async function generateMetadata({ params }: { params: Params }) {
+  const { ref } = await params;
+  return { title: `Order ${ref}` };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +38,11 @@ export default async function OrderConfirmationPage({
   const { ref } = await params;
   const sp = await searchParams;
 
-  const result = await getOrderByReference(ref);
+  // Preview: getOrderByReference returns a sample receipt for any ref.
+  const [{ preview }, result] = await Promise.all([
+    getViewer(),
+    getOrderByReference(ref),
+  ]);
   if (!result) notFound();
   const { order, items } = result;
 
@@ -42,11 +53,14 @@ export default async function OrderConfirmationPage({
     order.payment_method === "stub";
 
   return (
+    <>
+    {preview ? <PreviewBanner next={`/shop/order/${ref}`} /> : null}
     <div className="max-w-[900px] mx-auto px-4 py-10 flex flex-col gap-8">
       {showStubPaymentModal ? (
         <PaymentsComingSoonModal
           reference={order.reference}
           buyerEmail={order.buyer_email}
+          preview={preview}
         />
       ) : null}
 
@@ -202,5 +216,6 @@ export default async function OrderConfirmationPage({
         </Link>
       </footer>
     </div>
+    </>
   );
 }

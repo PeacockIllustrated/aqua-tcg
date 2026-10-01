@@ -4,14 +4,18 @@ import { useState, useTransition } from "react";
 import { Annotation } from "@/components/wireframe/Annotation";
 import { Button, Input, Select, Field } from "@/components/ui/Form";
 import { submitSubmission } from "@/app/_actions/submission";
+import { unwrapAction } from "@/lib/mock/preview-actions";
 import type { LewisUser, PayoutMethod } from "@/lib/supabase/types";
 
 type Props = {
   profile: LewisUser | null;
   defaultEmail: string;
+  /** Signed-out demo: submitting writes nothing and lands on a sample
+   *  confirmation page. */
+  preview?: boolean;
 };
 
-export function SubmitForm({ profile, defaultEmail }: Props) {
+export function SubmitForm({ profile, defaultEmail, preview = false }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [payout, setPayout] = useState<PayoutMethod>(
@@ -37,7 +41,7 @@ export function SubmitForm({ profile, defaultEmail }: Props) {
     };
     startTransition(async () => {
       try {
-        await submitSubmission(input);
+        unwrapAction(await submitSubmission(input));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to submit");
       }
@@ -175,6 +179,13 @@ export function SubmitForm({ profile, defaultEmail }: Props) {
         <div className="bg-warn/10 border-2 border-warn text-warn rounded-md px-3 py-2 text-[12px]">
           {error}
         </div>
+      ) : null}
+
+      {preview ? (
+        <p className="text-[11px] text-muted">
+          Preview: confirming won&rsquo;t send anything to the shop.
+          You&rsquo;ll see a sample confirmation with shipping instructions.
+        </p>
       ) : null}
 
       <Button type="submit" size="lg" className="w-full" disabled={pending}>

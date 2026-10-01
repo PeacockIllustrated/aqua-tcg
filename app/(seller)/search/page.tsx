@@ -17,6 +17,8 @@ import { pickHeadlinePrice } from "@/lib/prices/types";
 import type { Card } from "@/lib/types/card";
 import type { Condition, MockCard } from "@/lib/mock/types";
 
+export const metadata = { title: "Get an instant offer" };
+
 type SearchParams = Promise<{
   q?: string;
   set?: string;

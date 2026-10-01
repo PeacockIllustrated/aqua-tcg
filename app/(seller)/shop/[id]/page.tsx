@@ -10,6 +10,12 @@ import { formatGBP } from "@/lib/mock/mock-offer";
 
 type Params = Promise<{ id: string }>;
 
+export async function generateMetadata({ params }: { params: Params }) {
+  const { id } = await params;
+  const raw = await getListing(id);
+  return { title: raw ? adaptListing(raw).card_name : "Listing" };
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function ListingDetailPage({

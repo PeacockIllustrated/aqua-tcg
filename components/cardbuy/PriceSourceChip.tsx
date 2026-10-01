@@ -56,6 +56,10 @@ export function PriceSourceChip({
     );
   }
 
+  // Customers don't need to know a card is on baseline pricing — only
+  // the operator does (and only when there's something to fix).
+  if (!adminUnmappedHint) return null;
+
   return (
     <div
       className={`pop-card rounded-sm px-3 py-2 flex items-center justify-between gap-3 flex-wrap ${

@@ -1,29 +1,35 @@
 /**
- * Small coloured chip rendering an energy type. Pokémon TCG cards have
- * ~11 canonical types; we map each to one of the three brand accents
- * (brand / tint / highlight) plus paper/ink so the chips read on-brand.
+ * Energy-type chip. Uses each type's own colour (not the shop's brand
+ * colours) so it reads correctly under any white-label theme, and the
+ * official-style type icon where we ship one in public/icons/types.
  *
- * Used for type badges on `/card/[id]` and for attack energy-cost pips.
+ * Used for type badges on `/card/[id]` (md: icon + name) and for
+ * attack energy-cost pips (sm: icon only).
  */
 
-const TYPE_ACCENT: Record<string, string> = {
-  Fire:       "bg-brand text-ink",
-  Fighting:   "bg-brand text-ink",
-  Dragon:     "bg-brand text-ink",
-  Water:      "bg-tint text-ink",
-  Psychic:    "bg-tint text-ink",
-  Ice:        "bg-tint text-ink",
-  Lightning:  "bg-highlight text-ink",
-  Grass:      "bg-highlight text-ink",
-  Fairy:      "bg-highlight text-ink",
-  Darkness:   "bg-ink text-paper-strong",
-  Metal:      "bg-ink text-paper-strong",
-  Colorless:  "bg-paper-strong text-ink",
+const TYPE_STYLE: Record<string, string> = {
+  Fire: "bg-[#ef6a3a] text-paper-strong",
+  Water: "bg-[#4a9be0] text-paper-strong",
+  Grass: "bg-[#5bbf63] text-ink",
+  Lightning: "bg-[#f5c832] text-ink",
+  Psychic: "bg-[#b06ad8] text-paper-strong",
+  Fighting: "bg-[#c7773a] text-paper-strong",
+  Darkness: "bg-[#2f3a44] text-paper-strong",
+  Metal: "bg-[#9aa3ad] text-ink",
+  Dragon: "bg-[#c6a43a] text-ink",
+  Fairy: "bg-[#ec8fc4] text-ink",
+  Colorless: "bg-paper-strong text-ink",
 };
 
-function accentFor(type: string): string {
-  return TYPE_ACCENT[type] ?? "bg-paper-strong text-ink";
-}
+const ICON: Record<string, string> = {
+  Fire: "/icons/types/fire.svg",
+  Water: "/icons/types/water.svg",
+  Grass: "/icons/types/grass.svg",
+  Lightning: "/icons/types/lightning.svg",
+  Psychic: "/icons/types/psychic.svg",
+  Fighting: "/icons/types/fighting.svg",
+  Colorless: "/icons/types/colorless.svg",
+};
 
 type Props = {
   type: string;
@@ -32,15 +38,36 @@ type Props = {
 };
 
 export function EnergyChip({ type, size = "sm", className = "" }: Props) {
-  const dims = size === "md"
-    ? "h-7 min-w-7 px-2 text-[11px]"
-    : "h-5 min-w-5 px-1.5 text-[10px]";
+  const icon = ICON[type];
+  if (size === "sm") {
+    // Cost pip: the icon alone, or a coloured disc with the initial.
+    return icon ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={icon}
+        alt={type}
+        title={type}
+        className={`w-5 h-5 rounded-full border-2 border-ink ${className}`.trim()}
+      />
+    ) : (
+      <span
+        title={type}
+        className={`inline-flex items-center justify-center w-5 h-5 rounded-full border-2 border-ink font-display text-[9px] ${TYPE_STYLE[type] ?? "bg-paper-strong text-ink"} ${className}`.trim()}
+      >
+        <span aria-hidden="true">{type.charAt(0)}</span>
+        <span className="sr-only">{type}</span>
+      </span>
+    );
+  }
   return (
     <span
-      className={`inline-flex items-center justify-center border-2 border-ink rounded-full font-display tracking-wider ${dims} ${accentFor(type)} ${className}`.trim()}
-      title={type}
+      className={`inline-flex items-center gap-1.5 h-7 pl-1 pr-2.5 border-2 border-ink rounded-full font-display text-[11px] tracking-wider uppercase ${TYPE_STYLE[type] ?? "bg-paper-strong text-ink"} ${className}`.trim()}
     >
-      {type.slice(0, 3).toUpperCase()}
+      {icon ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={icon} alt="" className="w-[18px] h-[18px] rounded-full" />
+      ) : null}
+      {type}
     </span>
   );
 }

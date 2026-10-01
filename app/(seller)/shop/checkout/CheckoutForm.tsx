@@ -4,8 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Annotation } from "@/components/wireframe/Annotation";
-import { Button, Field, Input, Select } from "@/components/ui/Form";
-import { clearCart, useCart, type CartLine } from "@/lib/shop/cart";
+import { Button, Field, Input, Select, LinkButton } from "@/components/ui/Form";
+import {
+  addToCart,
+  clearCart,
+  useCart,
+  type CartLine,
+} from "@/lib/shop/cart";
 import {
   createOrder,
   getListingsByIds,
@@ -35,11 +40,21 @@ export function CheckoutForm({
   defaultEmail,
   defaultPostcode,
   defaultCountry,
+  defaultAddress,
+  preview = false,
+  sampleListingIds = [],
 }: {
   defaultName: string;
   defaultEmail: string;
   defaultPostcode: string;
   defaultCountry: string;
+  defaultAddress?: { line1: string; city: string };
+  /** Signed-out demo: placing the order writes nothing and lands on a
+   *  sample receipt. */
+  preview?: boolean;
+  /** Preview only: listings to drop into an empty basket so the
+   *  checkout can be tried without shopping first. */
+  sampleListingIds?: string[];
 }) {
   const router = useRouter();
   const { lines, hydrated } = useCart();
@@ -49,9 +64,9 @@ export function CheckoutForm({
 
   const [name, setName] = useState(defaultName);
   const [email, setEmail] = useState(defaultEmail);
-  const [line1, setLine1] = useState("");
+  const [line1, setLine1] = useState(defaultAddress?.line1 ?? "");
   const [line2, setLine2] = useState("");
-  const [city, setCity] = useState("");
+  const [city, setCity] = useState(defaultAddress?.city ?? "");
   const [postcode, setPostcode] = useState(defaultPostcode);
   const [country, setCountry] = useState(defaultCountry);
   const [shipMethod, setShipMethod] =
@@ -156,9 +171,23 @@ export function CheckoutForm({
         <span className="font-display text-[22px]">
           Your basket is empty
         </span>
-        <Link href="/shop">
-          <Button>Browse the shop</Button>
-        </Link>
+        {preview && sampleListingIds.length > 0 ? (
+          <p className="text-[13px] text-secondary max-w-[44ch]">
+            Add a couple of cards from the shop, or drop in a sample
+            basket to try the checkout.
+          </p>
+        ) : null}
+        <div className="flex flex-wrap gap-2 justify-center">
+          <LinkButton href="/shop" variant={preview ? "secondary" : undefined}>Browse the shop</LinkButton>
+          {preview && sampleListingIds.length > 0 ? (
+            <Button
+              type="button"
+              onClick={() => sampleListingIds.forEach((id) => addToCart(id))}
+            >
+              Use a sample basket →
+            </Button>
+          ) : null}
+        </div>
       </div>
     );
   }
@@ -177,9 +206,7 @@ export function CheckoutForm({
         <span className="font-display text-[22px]">
           Your basket is empty
         </span>
-        <Link href="/shop">
-          <Button>Browse the shop</Button>
-        </Link>
+        <LinkButton href="/shop">Browse the shop</LinkButton>
       </div>
     );
   }
@@ -348,6 +375,13 @@ export function CheckoutForm({
           >
             {error}
           </div>
+        ) : null}
+
+        {preview ? (
+          <p className="text-[11px] text-muted">
+            Preview: placing this order doesn&rsquo;t charge, reserve stock
+            or email anyone. You&rsquo;ll land on a sample receipt.
+          </p>
         ) : null}
 
         <Button

@@ -7,13 +7,19 @@ import { BinderChipRow } from "@/components/cardbuy/binder/BinderChipRow";
 import { CardImage } from "@/components/cardbuy/CardImage";
 import { EnergyChip, EnergyCostRow } from "@/components/cardbuy/EnergyChip";
 import { Annotation } from "@/components/wireframe/Annotation";
-import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/preview-server";
 import { getCardBinderStatus } from "@/app/_actions/binder";
 import { getMarginConfig } from "@/app/_actions/margins";
 import { getLatestPricesForCard } from "@/app/_actions/prices";
 import { pickHeadlinePrice } from "@/lib/prices/types";
 import { PriceSourceChip } from "@/components/cardbuy/PriceSourceChip";
 import type { Condition, MockCard } from "@/lib/mock/types";
+
+export async function generateMetadata({ params }: { params: Params }) {
+  const { id } = await params;
+  const card = getCardById(id);
+  return { title: card ? `Sell ${card.name} · ${setOf(card)?.name ?? ""}`.replace(/ · $/, "") : "Card" };
+}
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{
@@ -38,24 +44,25 @@ export default async function CardDetailPage({
 
   const set = setOf(card);
 
-  const supabase = await createClient();
-  const [{ data: { user } }, marginConfig, livePrices, binderStatus, mapRow] = await Promise.all([
-    supabase.auth.getUser(),
+  const { supabase, user, preview } = await getViewer();
+  const [marginConfig, livePrices, binderStatus, mapRow] = await Promise.all([
     getMarginConfig(),
     getLatestPricesForCard(id),
     getCardBinderStatus(id),
     supabase
-      .from("lewis_card_tcg_map")
-      .select("card_id")
-      .eq("card_id", id)
-      .maybeSingle(),
+      ? supabase
+          .from("lewis_card_tcg_map")
+          .select("card_id")
+          .eq("card_id", id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   // Admin gate for the "not mapped" hint — avoid leaking internal
   // state to regular sellers. Uses the same role check pattern as
   // admin-only action gates elsewhere.
   let isAdmin = false;
-  if (user) {
+  if (user && supabase) {
     const { data: profile } = await supabase
       .from("lewis_users")
       .select("role")
@@ -63,6 +70,10 @@ export default async function CardDetailPage({
       .maybeSingle();
     isAdmin = (profile as { role?: string } | null)?.role === "admin";
   }
+
+  // Preview visitors can open the binder / offer controls; the actions
+  // answer with a "sign in to save" message instead of writing.
+  const canUseAccountControls = Boolean(user) || preview;
 
   // If the nightly sync has covered this card, override the mock USD
   // baseline with the live TCGplayer market price. Condition
@@ -215,7 +226,7 @@ export default async function CardDetailPage({
           <BinderChipRow
             cardId={id}
             cardName={card.name}
-            isAuthenticated={Boolean(user)}
+            isAuthenticated={canUseAccountControls}
             initialEntries={binderStatus.entries}
             initialOnWishlist={binderStatus.onWishlist}
           />
@@ -240,7 +251,7 @@ export default async function CardDetailPage({
           <OfferBuilder
             card={liveCard}
             config={marginConfig}
-            isAuthenticated={Boolean(user)}
+            isAuthenticated={canUseAccountControls}
             prefill={{
               variant:
                 sp.prefill_variant === "graded" ? "graded" : undefined,

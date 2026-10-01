@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { hasDatabase } from "@/lib/preview";
 
 /**
  * Auth server actions — password-based sign in / sign up, plus
@@ -12,7 +13,15 @@ import { createClient } from "@/lib/supabase/server";
  * Errors round-trip via query params to the relevant page so we don't
  * need client-side state in the form. Every redirect target is inside
  * this app (never user-controlled).
+ *
+ * With no Supabase configured (`hasDatabase` false) there is nothing to
+ * sign in to: every action bounces back to /login with an explanation
+ * instead of calling `createClient()`, which would throw.
  */
+
+const NO_DB_ERROR = encodeURIComponent(
+  "Accounts aren't connected on this demo yet. Every account page is open in preview mode instead.",
+);
 
 function validPassword(pw: string): string | null {
   if (pw.length < 8) return "Password must be at least 8 characters";
@@ -33,6 +42,7 @@ export async function signInWithPassword(formData: FormData) {
   if (!email || !password) {
     redirect("/login?error=missing_fields");
   }
+  if (!hasDatabase) redirect(`/login?mode=signin&error=${NO_DB_ERROR}`);
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -73,6 +83,7 @@ export async function signUpWithPassword(formData: FormData) {
       `/login?mode=signup&error=${encodeURIComponent(pwErr)}&email=${encodeURIComponent(email)}`,
     );
   }
+  if (!hasDatabase) redirect(`/login?mode=signup&error=${NO_DB_ERROR}`);
 
   const h = await headers();
   const origin =
@@ -117,6 +128,7 @@ export async function requestPasswordReset(formData: FormData) {
   if (!email) {
     redirect("/login?mode=forgot&error=missing_email");
   }
+  if (!hasDatabase) redirect(`/login?mode=forgot&error=${NO_DB_ERROR}`);
 
   const h = await headers();
   const origin =
@@ -154,6 +166,7 @@ export async function updatePassword(formData: FormData) {
   if (pwErr) {
     redirect(`/auth/reset?error=${encodeURIComponent(pwErr)}`);
   }
+  if (!hasDatabase) redirect(`/login?error=${NO_DB_ERROR}`);
 
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password });
@@ -170,8 +183,10 @@ export async function updatePassword(formData: FormData) {
  * global cookie) then redirects to the homepage.
  */
 export async function signOut() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  if (hasDatabase) {
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+  }
   revalidatePath("/", "layout");
   redirect("/");
 }

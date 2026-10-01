@@ -5,6 +5,8 @@ import { listListings } from "@/app/_actions/shop";
 import { adaptListing } from "@/lib/shop/adapter";
 import type { MockListing } from "@/lib/mock/types";
 
+export const metadata = { title: "Shop" };
+
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<{

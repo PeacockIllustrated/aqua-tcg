@@ -1,5 +1,7 @@
 import { CartView } from "./CartView";
 
+export const metadata = { title: "Your basket" };
+
 export const dynamic = "force-dynamic";
 
 export default function ShopCartPage() {
