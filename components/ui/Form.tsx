@@ -1,4 +1,6 @@
+import Link from "next/link";
 import type {
+  AnchorHTMLAttributes,
   ButtonHTMLAttributes,
   InputHTMLAttributes,
   SelectHTMLAttributes,
@@ -45,6 +47,30 @@ export function Button({
     <button
       {...rest}
       className={`inline-flex items-center justify-center gap-2 font-display tracking-wider rounded-md transition-all duration-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-[2px_2px_0_0_var(--color-ink)] disabled:hover:translate-x-0 disabled:hover:translate-y-0 ${VARIANT[variant]} ${SIZE[size]} ${className}`.trim()}
+    />
+  );
+}
+
+type LinkButtonProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & {
+  href: string;
+  variant?: Variant;
+  size?: Size;
+};
+
+/** A link styled as a Button. Use instead of `<Link><Button/></Link>`,
+ *  which nests a button inside a link (invalid HTML, double tab stop). */
+export function LinkButton({
+  href,
+  variant = "primary",
+  size = "md",
+  className = "",
+  ...rest
+}: LinkButtonProps) {
+  return (
+    <Link
+      href={href}
+      {...rest}
+      className={`inline-flex items-center justify-center gap-2 font-display tracking-wider rounded-md transition-all duration-100 ${VARIANT[variant]} ${SIZE[size]} ${className}`.trim()}
     />
   );
 }

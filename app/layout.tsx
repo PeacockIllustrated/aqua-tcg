@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Archivo_Black, Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { PageFooter } from "@/components/wireframe/PageFooter";
-import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { BrandStyle } from "@/components/brand/BrandStyle";
+import { BRAND_BOOT_SCRIPT } from "@/lib/brand-custom";
 import { brand } from "@/lib/brand";
 
 const archivoBlack = Archivo_Black({
@@ -56,9 +58,15 @@ export default function RootLayout({
       className={`${archivoBlack.variable} ${inter.variable} h-full`}
     >
       <body className="min-h-full flex flex-col bg-paper text-ink font-sans text-[15px] leading-[1.55]">
+        {brand.demoMode ? (
+          // Applies a saved "Pick your colours" override before first paint.
+          <Script id="brand-boot" strategy="beforeInteractive">
+            {BRAND_BOOT_SCRIPT}
+          </Script>
+        ) : null}
         <main className="flex-1 overflow-x-clip">{children}</main>
         <PageFooter />
-        {brand.demoMode ? <ThemeSwitcher initial={brand.theme} /> : null}
+        {brand.demoMode ? <BrandStyle defaultTheme={brand.theme} /> : null}
       </body>
     </html>
   );

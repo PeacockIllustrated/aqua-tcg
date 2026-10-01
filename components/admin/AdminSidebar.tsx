@@ -1,6 +1,6 @@
 "use client";
 
-import { brand } from "@/lib/brand";
+import { BrandName } from "@/components/brand/BrandName";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -119,7 +119,7 @@ export function AdminSidebar({ counts }: { counts: AdminNavCounts }) {
         <div className="flex items-center justify-between px-3 py-2.5 gap-3">
           <Link href="/admin" className="flex items-baseline gap-2">
             <span className="font-display text-[18px] tracking-tight leading-none text-highlight">
-              {brand.name}
+              <BrandName />
             </span>
             <span className="bg-brand text-ink border-2 border-paper-strong px-1.5 py-0.5 text-[9px] font-display tracking-wider">
               ADMIN
@@ -178,7 +178,7 @@ function SidebarInner({
       <div className="px-4 py-4 border-b-2 border-paper-strong/20 hidden lg:flex items-baseline gap-2">
         <Link href="/admin" onClick={onNavigate} className="flex items-baseline gap-2">
           <span className="font-display text-[20px] tracking-tight leading-none text-highlight">
-            {brand.name}
+            <BrandName />
           </span>
           <span className="bg-brand text-ink border-2 border-paper-strong px-1.5 py-0.5 text-[9px] font-display tracking-wider">
             ADMIN

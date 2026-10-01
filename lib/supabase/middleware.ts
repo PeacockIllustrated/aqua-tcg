@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { hasDatabase, previewMode } from "@/lib/preview";
 
 /**
  * Keeps the Supabase session fresh on every request AND gates
@@ -19,6 +20,10 @@ import { NextResponse, type NextRequest } from "next/server";
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
+
+  // No Supabase configured: nothing to refresh, and every page renders
+  // its preview/sample-data version.
+  if (!hasDatabase) return response;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -48,8 +53,9 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Gate /admin/*
-  if (request.nextUrl.pathname.startsWith("/admin")) {
+  // Gate /admin/* — skipped in preview mode, where admin pages render
+  // sample data under a preview banner for anyone who isn't an admin.
+  if (!previewMode && request.nextUrl.pathname.startsWith("/admin")) {
     if (!user) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/login";

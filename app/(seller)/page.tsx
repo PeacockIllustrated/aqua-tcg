@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { Button, Input } from "@/components/ui/Form";
+import { Button, Input, LinkButton } from "@/components/ui/Form";
 import { ListingCard } from "@/components/cardbuy/ListingCard";
 import { PackTile } from "@/components/cardbuy/PackTile";
 import { getFeaturedListings } from "@/lib/mock/mock-listings";
-import Image from "next/image";
 import { HeroCardReel } from "@/components/cardbuy/HeroCardReel";
 import { WaveDivider } from "@/components/cardbuy/WaveDivider";
 import {
@@ -14,6 +13,8 @@ import {
 import { resolveElementalType } from "@/components/cardbuy/particles/recipes";
 import type { Card } from "@/lib/types/card";
 import { brand } from "@/lib/brand";
+import { BrandLogo } from "@/components/brand/BrandLogo";
+import { BrandName, BrandWordmark } from "@/components/brand/BrandName";
 
 /**
  * Rarity-ladder hero picks. Ordered Common → Promo so the scroll reel
@@ -52,7 +53,7 @@ export default async function HomePage({
     <div className="flex flex-col">
       {sp.error === "admin_required" ? (
         <div className="border-b-[3px] border-ink bg-warn text-paper-strong px-4 py-2 font-display text-[12px] tracking-wider text-center">
-          That area&apos;s admin-only. Ask {brand.name} to promote your account if
+          That area&apos;s admin-only. Ask <BrandName /> to promote your account if
           you think that&apos;s wrong.
         </div>
       ) : null}
@@ -100,13 +101,10 @@ export default async function HomePage({
                   "radial-gradient(circle, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.42) 46%, transparent 72%)",
               }}
             />
-            <Image
-              src={brand.logo}
+            <BrandLogo
               alt={brand.name}
-              width={300}
-              height={325}
               priority
-              className="relative w-[64%] md:w-[68%] h-auto [filter:drop-shadow(5px_5px_0_var(--color-ink))]"
+              className="relative w-[64%] md:w-[68%] h-[64%] md:h-[68%] [filter:drop-shadow(5px_5px_0_var(--color-ink))]"
             />
             {/* Comic-book star accent */}
             <div className="absolute top-0 right-1 md:top-2 md:right-3 w-10 h-10 md:w-14 md:h-14 bg-paper-strong border-[3px] border-ink rounded-full flex items-center justify-center rotate-12">
@@ -122,14 +120,8 @@ export default async function HomePage({
               {brand.location}
             </span>
 
-            <h1 className="font-display leading-[0.85] tracking-tight text-[52px] sm:text-[76px] md:text-[96px] lg:text-[120px] text-paper-strong [text-shadow:4px_4px_0_var(--color-ink)]">
-              {brand.wordmark[0]}
-              {brand.wordmark[1] ? (
-                <>
-                  <br />
-                  <span className="text-highlight">{brand.wordmark[1]}</span>
-                </>
-              ) : null}
+            <h1 className="font-display leading-[0.85] tracking-tight text-[48px] sm:text-[72px] md:text-[88px] lg:text-[112px] break-words text-paper-strong [text-shadow:4px_4px_0_var(--color-ink)]">
+              <BrandWordmark stacked lastClassName="text-highlight" />
             </h1>
 
             <p className="font-display text-[12px] sm:text-[14px] md:text-[16px] tracking-wider text-ink max-w-[48ch] mx-auto md:mx-0">
@@ -144,7 +136,7 @@ export default async function HomePage({
                 UK · GBP
               </span>
               <span className="font-display text-[10px] tracking-widest bg-highlight text-ink px-2 py-1 rounded-sm border-2 border-ink">
-                SINGLE-MERCHANT
+                INSTANT OFFERS
               </span>
             </div>
           </div>
@@ -202,16 +194,14 @@ export default async function HomePage({
               Every listing is hand-picked in store. Free Royal Mail Tracked over £250. UK
               dispatch within one working day.
             </p>
-            <Link href="/shop" className="block">
-              <Button size="lg" variant="secondary" className="w-full">
-                Browse the shop →
-              </Button>
-            </Link>
+            <LinkButton href="/shop" size="lg" variant="secondary" className="w-full">
+              Browse the shop →
+            </LinkButton>
             <Link
-              href="/shop?sort=newest"
+              href="/shop?sort=price_asc"
               className="text-[12px] font-display tracking-wider underline underline-offset-4 hover:text-brand"
             >
-              See newest listings
+              Shop lowest prices first
             </Link>
           </div>
         </div>
@@ -243,9 +233,9 @@ export default async function HomePage({
                 GBP offer. Every set from Base to Surging Sparks.
               </p>
               <div className="flex flex-wrap gap-3 pt-1">
-                <Link href="/packs" className="inline-block">
-                  <Button size="lg">Browse packs →</Button>
-                </Link>
+                <LinkButton href="/packs" size="lg">
+                  Browse packs →
+                </LinkButton>
                 <Link
                   href="/search"
                   className="font-display text-[12px] tracking-wider underline underline-offset-4 decoration-2 self-center hover:text-brand"
@@ -309,13 +299,19 @@ export default async function HomePage({
                 ["3", "Post your cards. Get paid by PayPal."],
               ].map(([n, t]) => (
                 <li key={n} className="pop-card rounded-md p-4 flex gap-3 items-start">
-                  <span className="font-display text-[24px] leading-none text-brand shrink-0">
+                  <span className="font-display text-[15px] w-8 h-8 rounded-full border-2 border-ink bg-highlight flex items-center justify-center shrink-0">
                     {n}
                   </span>
                   <span className="text-[14px] pt-1">{t}</span>
                 </li>
               ))}
             </ol>
+            <Link
+              href="/help/selling"
+              className="font-display text-[12px] tracking-wider underline underline-offset-4 decoration-2 hover:text-brand w-fit"
+            >
+              Full selling guide →
+            </Link>
           </div>
           <div className="flex flex-col gap-3">
             <span className="bg-tint text-ink border-2 border-ink w-fit px-2 py-1 font-display text-[10px] tracking-wider">
@@ -331,13 +327,19 @@ export default async function HomePage({
                 ["3", "Royal Mail delivers — tracked as standard."],
               ].map(([n, t]) => (
                 <li key={n} className="pop-card rounded-md p-4 flex gap-3 items-start">
-                  <span className="font-display text-[24px] leading-none text-tint shrink-0">
+                  <span className="font-display text-[15px] w-8 h-8 rounded-full border-2 border-ink bg-tint flex items-center justify-center shrink-0">
                     {n}
                   </span>
                   <span className="text-[14px] pt-1">{t}</span>
                 </li>
               ))}
             </ol>
+            <Link
+              href="/help/shipping"
+              className="font-display text-[12px] tracking-wider underline underline-offset-4 decoration-2 hover:text-brand w-fit"
+            >
+              Shipping &amp; returns →
+            </Link>
           </div>
         </div>
       </section>

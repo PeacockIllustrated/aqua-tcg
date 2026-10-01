@@ -38,13 +38,15 @@ The default with nothing set is **"Your Card Shop"** in a neutral greyscale them
 
 **Colours.** Three CSS variables in [`app/globals.css`](app/globals.css) carry a shop's brand: `--color-brand` (primary), `--color-tint` (secondary surfaces) and `--color-highlight` (wordmark and badges). Every `bg-brand` / `text-tint` / `bg-highlight` utility reads from them. To add a bespoke colourway, add a `[data-theme="shopname"]` block next to the existing presets and add its name to `THEMES` in `lib/brand.ts`. Keep `brand` mid-luminance so both black and white text stay readable on it.
 
-### Pitch / demo mode
+### Pitch / preview mode (on by default)
 
-```bash
-NEXT_PUBLIC_DEMO_MODE=true
-```
+Preview mode is controlled by `NEXT_PUBLIC_DEMO_MODE`. It's on unless you set it to `"false"`, and it's what you want for pitching:
 
-This shows a floating **"Your colours here"** switcher in the bottom-right corner, so a prospect can flip through the colourways live during a pitch. Leave it off for real shops.
+- **Pick your colours.** The header has a "Pick your colours" button. A prospect can choose a preset or their own three colours, upload their logo (PNG, JPG, SVG or WebP) and type their shop name, and the whole site reskins live. All of this is stored only in their browser's localStorage, never on the server, and "Reset to default" clears it.
+- **Every page is open.** Pages that normally need sign-in (binder, your sale, checkout, account settings, order and sale confirmations) and the whole admin panel can be viewed without an account. They show sample data from `lib/mock/`, under a banner that says *"Preview: this page is normally behind sign-in"*. Changes made in preview aren't saved.
+- **No database needed.** If the Supabase env vars aren't set, every page falls back to the same sample data, so a pitch site can be deployed with no backend at all.
+
+For a real shop, set `NEXT_PUBLIC_DEMO_MODE=false`. That restores the sign-in and admin gates and hides the picker. See `lib/preview.ts`.
 
 ---
 
@@ -55,6 +57,8 @@ pnpm install
 cp .env.example .env.local    # fill in Supabase keys and the brand vars above
 pnpm dev                      # http://localhost:3000
 ```
+
+With no Supabase keys the site runs entirely on sample data, which is enough for a demo. For a live shop:
 
 1. **Supabase.** Create a project and run the migrations in `supabase/migrations/` in order (SQL Editor or `supabase db push`).
 2. **Auth redirect.** In Supabase → Authentication → URL Configuration, add `http://localhost:3000/auth/callback` and the production callback URL.
@@ -71,4 +75,4 @@ Scripts: `pnpm dev`, `pnpm build`, `pnpm lint`, `pnpm typecheck`.
 
 - **Payments.** Stripe checkout and PayPal payouts are stubbed: orders are created and held, then payment is taken manually.
 - **Transactional email and shipping labels.**
-- **Legal pages.** Terms, privacy and returns links are placeholders and need copy for each shop.
+- **Legal pages.** `/help/terms`, `/help/privacy` and `/help/shipping` have template copy (in `lib/help-content.ts`). Each shop needs to review it before launch.
