@@ -12,6 +12,9 @@ import {
   getSetsGroupedBySeries,
   LAST_SYNCED,
 } from "@/lib/fixtures/cards";
+import { getCardCoverageStats } from "@/app/_actions/prices";
+
+export const metadata = { title: "Cards" };
 
 type SearchParams = Promise<{
   set?: string;
@@ -42,6 +45,8 @@ export default async function AdminCardsPage({
   searchParams: SearchParams;
 }) {
   const sp = await searchParams;
+  const { lastSyncAt } = await getCardCoverageStats();
+  const syncedOn = lastSyncAt ? lastSyncAt.slice(0, 10) : LAST_SYNCED;
   let rows = ALL;
   if (sp.set) rows = rows.filter((c) => setIdOf(c) === sp.set);
   if (sp.rarity) rows = rows.filter((c) => (c.rarity ?? "Promo") === sp.rarity);
@@ -74,7 +79,7 @@ export default async function AdminCardsPage({
           { label: "Cards" },
         ]}
         title="Card catalogue"
-        kicker={{ label: `SYNCED ${LAST_SYNCED}`, tone: "tint" }}
+        kicker={{ label: `SYNCED ${syncedOn}`, tone: "tint" }}
         subtitle="The full Pokémon TCG catalogue with live market prices pulled from TCGCSV."
         actions={
           <>
@@ -251,11 +256,11 @@ export default async function AdminCardsPage({
                   {mock?.sale_count_30d ?? 0} / 30d{" "}
                   {lowConf ? (
                     <span className="text-warn text-[10px] font-display tracking-wider">
-                      [LOW]
+                      LOW
                     </span>
                   ) : null}
                 </TD>
-                <TD className="text-muted text-[11px] tabular-nums">{LAST_SYNCED}</TD>
+                <TD className="text-muted text-[11px] tabular-nums">{syncedOn}</TD>
               </TR>
             );
           })}

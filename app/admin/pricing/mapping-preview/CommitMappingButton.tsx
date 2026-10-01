@@ -42,7 +42,7 @@ export function CommitMappingButton({
                 }`,
         });
       } else {
-        setResult({ ok: false, text: res.error });
+        setResult({ ok: Boolean(res.preview), text: res.preview ? "Preview — not saved" : res.error });
       }
     });
   };
@@ -57,7 +57,7 @@ export function CommitMappingButton({
         title={
           matchedCount === 0
             ? "Nothing to commit"
-            : `Upsert ${matchedCount} rows into lewis_card_tcg_map`
+            : `Save ${matchedCount} matches for this set`
         }
       >
         {pending ? "Committing…" : "Commit →"}

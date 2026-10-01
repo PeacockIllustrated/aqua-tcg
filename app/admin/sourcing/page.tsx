@@ -3,7 +3,9 @@ import { Annotation } from "@/components/wireframe/Annotation";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/Table";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { listHoldersOfCard } from "@/app/_actions/admin";
-import { searchCards } from "@/lib/fixtures/cards";
+import { getSetById, searchCards } from "@/lib/fixtures/cards";
+
+export const metadata = { title: "Sourcing" };
 
 /**
  * `/admin/sourcing?card=<id>` · Phase 6 Slice C2.
@@ -113,7 +115,9 @@ function SearchResults({ query }: { query: string }) {
             return (
               <TR key={c.id}>
                 <TD>{c.name}</TD>
-                <TD className="text-[11px] text-muted">{setId}</TD>
+                <TD className="text-[11px] text-muted">
+                  {getSetById(setId)?.name ?? setId}
+                </TD>
                 <TD className="text-[11px] tabular-nums">{c.number}</TD>
                 <TD>
                   <Link
@@ -164,7 +168,7 @@ async function HoldersView({ cardId }: { cardId: string }) {
         </div>
         {holders.length === 0 ? (
           <div className="pop-card rounded-md p-6 text-center text-secondary text-[13px]">
-            No users hold this card yet.
+            No collectors have this card in their binder yet.
           </div>
         ) : (
           <Table>
@@ -201,7 +205,11 @@ async function HoldersView({ cardId }: { cardId: string }) {
                     ) : null}
                   </TD>
                   <TD className="text-[11px] font-display tracking-wider text-muted">
-                    {h.source}
+                    {h.source === "shop_order"
+                      ? "Bought from you"
+                      : h.source === "import"
+                        ? "Imported"
+                        : "Added by owner"}
                   </TD>
                   <TD className="text-[11px] text-muted tabular-nums">
                     {new Date(h.acquired_at).toISOString().slice(0, 10)}

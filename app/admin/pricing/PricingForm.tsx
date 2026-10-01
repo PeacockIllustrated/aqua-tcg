@@ -30,6 +30,7 @@ export function PricingForm({ initial, lastSavedAt, initialFxEurGbp }: Props) {
   const [pending, startTransition] = useTransition();
   const [savedAt, setSavedAt] = useState<string | null>(lastSavedAt);
   const [error, setError] = useState<string | null>(null);
+  const [previewNote, setPreviewNote] = useState<string | null>(null);
 
   function update<K extends keyof MockMarginConfig>(
     k: K,
@@ -86,6 +87,7 @@ export function PricingForm({ initial, lastSavedAt, initialFxEurGbp }: Props) {
 
   function save() {
     setError(null);
+    setPreviewNote(null);
     startTransition(async () => {
       const result = await updateMarginConfig({
         global_margin: config.global_margin,
@@ -103,6 +105,11 @@ export function PricingForm({ initial, lastSavedAt, initialFxEurGbp }: Props) {
         fx_manual_override: config.fx_manual_override,
         change_note: changeNote.trim() || undefined,
       });
+      if (!result.ok && result.preview) {
+        // Preview: keep the edits on screen, but say they weren't saved.
+        setPreviewNote(result.error ?? "Preview — changes aren't saved.");
+        return;
+      }
       if (!result.ok) {
         setError(result.error ?? "Save failed");
         return;
@@ -119,6 +126,7 @@ export function PricingForm({ initial, lastSavedAt, initialFxEurGbp }: Props) {
     setChangeNote("");
     setDirty(false);
     setError(null);
+    setPreviewNote(null);
   }
 
   return (
@@ -164,8 +172,19 @@ export function PricingForm({ initial, lastSavedAt, initialFxEurGbp }: Props) {
       </div>
 
       {error ? (
-        <div className="bg-warn/10 border-2 border-warn text-warn rounded-md px-3 py-2 text-[12px]">
+        <div
+          role="alert"
+          className="bg-warn/10 border-2 border-warn text-warn rounded-md px-3 py-2 text-[12px]"
+        >
           {error}
+        </div>
+      ) : null}
+      {previewNote ? (
+        <div
+          role="status"
+          className="bg-highlight/30 border-2 border-ink text-ink rounded-md px-3 py-2 text-[12px]"
+        >
+          {previewNote}
         </div>
       ) : null}
 
@@ -234,7 +253,7 @@ export function PricingForm({ initial, lastSavedAt, initialFxEurGbp }: Props) {
 
           <Field
             label="Manual FX override"
-            hint="If on, the FX values below are used as-is. If off, they get refreshed by the nightly cron (Phase 2b.2)."
+            hint="If on, the FX values below are used as-is. If off, they're refreshed automatically every night."
           >
             <label className="text-[12px] flex items-center gap-2">
               <input
@@ -449,11 +468,8 @@ export function PricingForm({ initial, lastSavedAt, initialFxEurGbp }: Props) {
       ) : null}
 
       <p className="text-[11px] text-muted font-display tracking-wider">
-        Live data ·{" "}
-        <code className="font-mono">lewis_admin_margins</code>. Every save
-        snapshots the previous version into{" "}
-        <code className="font-mono">lewis_admin_margins_history</code> via
-        trigger.
+        Every save keeps a copy of the previous settings, so you can always
+        see what changed and when.
       </p>
     </div>
   );

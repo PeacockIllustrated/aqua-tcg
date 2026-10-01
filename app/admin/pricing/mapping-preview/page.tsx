@@ -12,6 +12,10 @@ import {
   type MappingResult,
 } from "@/lib/pricing/build-mapping";
 import { CommitMappingButton } from "./CommitMappingButton";
+import { isAdminPreview } from "@/app/_actions/admin";
+import { SAMPLE_MAPPING_SETS, sampleMapping } from "@/lib/mock/admin-sample";
+
+export const metadata = { title: "Price mapping" };
 
 /**
  * Phase 3 slice 2 verification page.
@@ -35,7 +39,19 @@ type PerSet = {
   ms: number;
 };
 
+async function samplePerSet(): Promise<PerSet[]> {
+  return SAMPLE_MAPPING_SETS.map((s, i) => ({
+    setId: s.setId,
+    tcgName: s.tcgName,
+    groupId: s.groupId,
+    result: sampleMapping(s.setId, s.groupId),
+    error: null,
+    ms: 180 + i * 37,
+  }));
+}
+
 export default async function MappingPreviewPage() {
+  const preview = await isAdminPreview();
   // Diagnostic timing on a server-rendered admin page — `performance.now()`
   // is intentionally non-deterministic here (we want wall-clock timings),
   // so the React purity rule doesn't apply.
@@ -45,16 +61,19 @@ export default async function MappingPreviewPage() {
   // 1 · Resolve the 6 first-gen groupIds in one /groups call.
   let groupMap: Record<string, number | null> = {};
   let resolveError: string | null = null;
-  try {
-    groupMap = await resolveGroupIds(PHASE3_SLICE1_SETS);
-  } catch (e) {
-    resolveError = e instanceof Error ? e.message : String(e);
+  if (!preview) {
+    try {
+      groupMap = await resolveGroupIds(PHASE3_SLICE1_SETS);
+    } catch (e) {
+      resolveError = e instanceof Error ? e.message : String(e);
+    }
   }
 
   // 2 · For each set, fetch products (serialised with politeness) and
-  //     build the mapping against our local catalogue.
-  const perSet: PerSet[] = [];
-  for (const [setId, aliases] of Object.entries(PHASE3_SLICE1_SETS)) {
+  //     build the mapping against our local catalogue. Preview mode
+  //     shows a sample report instead of hitting TCGCSV.
+  const perSet: PerSet[] = preview ? await samplePerSet() : [];
+  for (const [setId, aliases] of preview ? [] : Object.entries(PHASE3_SLICE1_SETS)) {
     const tcgName = aliases[0]; // primary name shown in UI
     const groupId = groupMap[setId] ?? null;
     // eslint-disable-next-line react-hooks/purity
@@ -130,23 +149,23 @@ export default async function MappingPreviewPage() {
     <div className="px-4 py-6 max-w-[1300px] mx-auto flex flex-col gap-8">
       <header className="flex flex-col gap-2">
         <span className="font-display text-[10px] tracking-wider text-muted">
-          Phase 3 · Slice 2 · Card ↔ productId mapping
+          Catalogue · Price matching
         </span>
         <h1 className="font-display text-[32px] leading-none tracking-tight">
-          TCGCSV mapping preview
+          Price source matching
         </h1>
         <p className="text-secondary text-[13px] max-w-[72ch]">
-          Builds the <code>card_id → productId</code> lookup for base1–5 +
-          basep. Issues (ambiguous, unmatched, orphans) are listed inline so
-          you can sign off matching quality before slice 3 commits the
-          mapping to a table. Refresh to re-fetch.
+          How each card in your catalogue lines up with its TCGplayer market
+          price. Anything ambiguous or unmatched is listed below so you can
+          check it before the prices go live. Commit a set once you&rsquo;re
+          happy with it.
         </p>
         <div className="flex gap-4 pt-1">
           <Link href="/admin/pricing" className="font-display text-[11px] tracking-wider underline underline-offset-4">
-            ← /admin/pricing
+            ← Pricing
           </Link>
           <Link href="/admin/pricing/sync-preview" className="font-display text-[11px] tracking-wider underline underline-offset-4">
-            /admin/pricing/sync-preview →
+            Price feed preview →
           </Link>
         </div>
       </header>
@@ -456,11 +475,6 @@ export default async function MappingPreviewPage() {
         )}
       </section>
 
-      <p className="text-[11px] text-muted italic pt-4">
-        Slice 3 next: once these numbers look acceptable, we migrate the
-        mapping into <code>lewis_card_tcg_map</code> and wire the sync
-        job to write <code>lewis_prices</code>.
-      </p>
     </div>
   );
 }

@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/Table";
-import { Button } from "@/components/ui/Form";
+import { LinkButton } from "@/components/ui/Form";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { listAdminSubmissions } from "@/app/_actions/admin";
 import type { SubmissionStatus } from "@/lib/supabase/types";
 import { formatGBP } from "@/lib/mock/mock-offer";
+
+export const metadata = { title: "Submissions" };
 
 const STATUS_LABELS: Record<SubmissionStatus, string> = {
   draft: "Draft",
@@ -118,7 +120,7 @@ export default async function AdminSubmissionsPage({
         <TBody>
           {rows.length === 0 ? (
             <TR>
-              <TD className="text-center text-secondary py-6">
+              <TD colSpan={7} className="text-center text-secondary py-6">
                 No submissions in this status.
               </TD>
             </TR>
@@ -137,7 +139,7 @@ export default async function AdminSubmissionsPage({
                         : "bg-paper-strong text-muted";
               return (
                 <TR key={s.id}>
-                  <TD className="font-mono text-[12px] tabular-nums">
+                  <TD className="font-mono text-[12px] tabular-nums whitespace-nowrap">
                     {s.reference}
                   </TD>
                   <TD>
@@ -154,7 +156,7 @@ export default async function AdminSubmissionsPage({
                   </TD>
                   <TD>
                     <span
-                      className={`border-2 border-ink px-1.5 py-0.5 font-display text-[9px] tracking-wider rounded-sm ${toneCls}`}
+                      className={`border-2 border-ink px-1.5 py-0.5 font-display text-[9px] tracking-wider rounded-sm whitespace-nowrap ${toneCls}`}
                     >
                       {STATUS_LABELS[s.status]}
                     </span>
@@ -163,11 +165,13 @@ export default async function AdminSubmissionsPage({
                     {(s.submitted_at ?? s.created_at).slice(0, 10)}
                   </TD>
                   <TD>
-                    <Link href={`/admin/submissions/${s.reference}`}>
-                      <Button size="sm" variant="secondary">
-                        Open →
-                      </Button>
-                    </Link>
+                    <LinkButton
+                      href={`/admin/submissions/${s.reference}`}
+                      size="sm"
+                      variant="secondary"
+                    >
+                      Open →
+                    </LinkButton>
                   </TD>
                 </TR>
               );
@@ -177,9 +181,8 @@ export default async function AdminSubmissionsPage({
       </Table>
 
       <p className="text-[11px] text-muted font-display tracking-wider">
-        Live data · pulled from{" "}
-        <code className="font-mono">lewis_submissions</code> via RLS-scoped
-        admin read.
+        Open a submission to verify card conditions on arrival, revise the
+        offer, and approve the payout.
       </p>
     </div>
   );

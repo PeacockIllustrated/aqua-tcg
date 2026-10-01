@@ -78,7 +78,7 @@ export default async function SubmissionPage() {
         </div>
       ) : (
         <>
-          <Table>
+          <Table scrollHint={false}>
             <THead>
               <TR>
                 <TH>Card</TH>

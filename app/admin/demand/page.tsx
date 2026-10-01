@@ -5,6 +5,8 @@ import { StatCard } from "@/components/admin/StatCard";
 import { listAdminDemand } from "@/app/_actions/admin";
 import { formatGBP } from "@/lib/mock/mock-offer";
 
+export const metadata = { title: "Demand" };
+
 /**
  * `/admin/demand` · Phase 6 · Slice B1.
  *
@@ -13,8 +15,8 @@ import { formatGBP } from "@/lib/mock/mock-offer";
  * from the `lewis_wishlist_entries: admin read` RLS policy shipped in
  * migration 0006. Middleware role-gates the `/admin/*` tree.
  *
- * The in-stock join still uses mock listings — swap for a real
- * `lewis_listings` read when shop persistence lands (Phase 7).
+ * The in-stock join reads active `lewis_listings` (sample listings in
+ * preview mode).
  */
 export default async function AdminDemandPage() {
   const rows = await listAdminDemand();
@@ -129,8 +131,9 @@ export default async function AdminDemandPage() {
       )}
 
       <p className="text-[10px] text-muted font-display tracking-wider">
-        In-stock counts currently read from mock listings. Real data lands
-        when shop persistence ships (Phase 7).
+        Convert = a wisher&rsquo;s target meets your lowest price · Surface =
+        in stock, worth a nudge · List it = buyers waiting, no stock · Watch =
+        early interest.
       </p>
     </div>
   );

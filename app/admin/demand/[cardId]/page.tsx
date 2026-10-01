@@ -42,7 +42,7 @@ export default async function DemandDrilldownPage({
       </nav>
 
       <header className="flex flex-col gap-1">
-        <Annotation>ADMIN · DEMAND · CARD</Annotation>
+        <Annotation>WISHLIST DEMAND</Annotation>
         <h1 className="font-display text-[26px] tracking-tight uppercase">
           {data.card_name}
         </h1>
@@ -168,8 +168,8 @@ export default async function DemandDrilldownPage({
       </section>
 
       <p className="text-[10px] text-muted font-display tracking-wider">
-        Automated email dispatch arrives with Phase 8 — for now, reach
-        out manually and mark any deals done.
+        Tip: message the top bidder first — a matched target is the easiest
+        sale you&rsquo;ll make all week.
       </p>
     </div>
   );

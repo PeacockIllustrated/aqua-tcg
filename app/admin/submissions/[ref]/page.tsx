@@ -1,36 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Annotation } from "@/components/wireframe/Annotation";
-import {
-  SubmissionReview,
-  type ConditionOfferMap,
-} from "@/components/cardbuy/SubmissionReview";
+import { SubmissionReview, type ReviewItem } from "@/components/admin/SubmissionReview";
 import { getAdminSubmission } from "@/app/_actions/admin";
-import { getMarginConfig } from "@/app/_actions/margins";
-import { getMockCardById } from "@/lib/fixtures/mock-adapter";
-import { computeMockOffer } from "@/lib/mock/mock-offer";
-import type {
-  Condition,
-  MockSubmission,
-  MockSubmissionItem,
-  SubmissionStatus,
-} from "@/lib/mock/types";
+import { getAdminMarginConfig } from "@/app/_actions/margins";
+import { getCardById, getSetById } from "@/lib/fixtures/cards";
+import { formatGBP } from "@/lib/mock/mock-offer";
+import type { ItemCondition } from "@/lib/supabase/types";
 
-const CONDITIONS: Condition[] = ["NM", "LP", "MP", "HP", "DMG"];
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: "Draft",
-  submitted: "Awaiting cards",
-  awaiting_cards: "Awaiting cards",
-  received: "Received",
-  under_review: "Under review",
-  offer_revised: "Offered",
-  approved: "Approved",
-  paid: "Paid",
-  rejected: "Rejected",
-  returned: "Returned",
-  cancelled: "Cancelled",
-};
+export const dynamic = "force-dynamic";
 
 type Params = Promise<{ ref: string }>;
 
@@ -42,68 +20,28 @@ export default async function AdminSubmissionDetailPage({
   const { ref } = await params;
   const [result, marginConfig] = await Promise.all([
     getAdminSubmission(ref),
-    getMarginConfig(),
+    getAdminMarginConfig(),
   ]);
   if (!result) notFound();
 
   const { submission, items, seller } = result;
 
-  // Adapt the DB rows into the MockSubmission shape that SubmissionReview
-  // expects. Phase 2b will refactor SubmissionReview to take the real
-  // types directly; for now this adapter keeps the component logic
-  // untouched.
-  const adaptedItems: MockSubmissionItem[] = items.map((it) => {
-    const card = getMockCardById(it.card_id);
+  const reviewItems: ReviewItem[] = items.map((it) => {
+    const card = getCardById(it.card_id);
+    const setId = it.card_id.split("-")[0];
     return {
       id: it.id,
-      card_id: it.card_id,
       card_name: card?.name ?? it.card_id,
-      set_name: card?.set_name ?? "",
+      set_name: getSetById(setId)?.name ?? setId,
       variant: it.variant,
-      condition: it.condition ?? undefined,
-      grading_company: it.grading_company ?? undefined,
-      grade: it.grade as MockSubmissionItem["grade"],
+      condition: it.condition,
+      grading_company: it.grading_company,
+      grade: it.grade,
       quantity: it.quantity,
       offered_amount_per: Number(it.offered_amount_per),
-      offered_amount_total: Number(it.offered_amount_total),
+      verified_condition: (it.verified_condition as ItemCondition | null) ?? null,
     };
   });
-
-  const adaptedSubmission: MockSubmission = {
-    id: submission.id,
-    reference: submission.reference,
-    seller_name: seller.full_name ?? seller.email,
-    seller_email: seller.email,
-    status: submission.status as SubmissionStatus,
-    payout_method: submission.payout_method ?? "paypal",
-    shipping_method:
-      (submission.shipping_method as MockSubmission["shipping_method"]) ??
-      "royal_mail_tracked",
-    total_offered: Number(submission.total_offered ?? 0),
-    total_paid: submission.total_paid ? Number(submission.total_paid) : null,
-    submitted_at:
-      submission.submitted_at ?? submission.created_at,
-    items: adaptedItems,
-  };
-
-  // Precompute per-condition offers server-side so the client review
-  // component can recalculate downgrades without bundling the server-only
-  // card fixture.
-  const offerByCondition: ConditionOfferMap = {};
-  for (const item of adaptedItems) {
-    if (item.variant !== "raw") continue;
-    const card = getMockCardById(item.card_id);
-    if (!card) continue;
-    const perCondition: Partial<Record<Condition, number>> = {};
-    for (const c of CONDITIONS) {
-      perCondition[c] = computeMockOffer(
-        card,
-        { variant: "raw", condition: c },
-        marginConfig,
-      ).offerGbp;
-    }
-    offerByCondition[item.id] = perCondition;
-  }
 
   return (
     <div className="px-4 py-6 max-w-[1200px] mx-auto flex flex-col gap-6">
@@ -112,14 +50,14 @@ export default async function AdminSubmissionDetailPage({
           href="/admin/submissions"
           className="underline underline-offset-4 decoration-2 hover:text-brand"
         >
-          ← back to queue
+          ← Submissions
         </Link>
       </nav>
 
       <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6">
         {/* Metadata column */}
         <aside className="pop-card rounded-md p-4 flex flex-col gap-3 h-fit">
-          <Annotation>SUBMISSION META</Annotation>
+          <Annotation>SUBMISSION</Annotation>
           <h1 className="font-mono text-[18px] break-all tabular-nums">
             {submission.reference}
           </h1>
@@ -135,14 +73,6 @@ export default async function AdminSubmissionDetailPage({
                   {seller.postcode}, {seller.country ?? "GB"}
                 </dd>
               ) : null}
-            </div>
-            <div>
-              <dt className="text-muted font-display uppercase tracking-wider text-[10px]">
-                Status
-              </dt>
-              <dd className="font-display tracking-tight uppercase">
-                {STATUS_LABELS[submission.status] ?? submission.status}
-              </dd>
             </div>
             <div>
               <dt className="text-muted font-display uppercase tracking-wider text-[10px]">
@@ -171,6 +101,14 @@ export default async function AdminSubmissionDetailPage({
             </div>
             <div>
               <dt className="text-muted font-display uppercase tracking-wider text-[10px]">
+                Offered
+              </dt>
+              <dd className="font-display tabular-nums">
+                {formatGBP(Number(submission.total_offered ?? 0))}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted font-display uppercase tracking-wider text-[10px]">
                 Submitted
               </dt>
               <dd className="tabular-nums font-mono text-[11px]">
@@ -182,14 +120,28 @@ export default async function AdminSubmissionDetailPage({
                   : "—"}
               </dd>
             </div>
+            {submission.notes_internal ? (
+              <div>
+                <dt className="text-muted font-display uppercase tracking-wider text-[10px]">
+                  Internal note
+                </dt>
+                <dd className="text-[12px] leading-snug">{submission.notes_internal}</dd>
+              </div>
+            ) : null}
           </dl>
         </aside>
 
         {/* Cards + verification + summary */}
         <div className="flex flex-col gap-4">
           <SubmissionReview
-            submission={adaptedSubmission}
-            offerByCondition={offerByCondition}
+            submissionId={submission.id}
+            initialStatus={submission.status}
+            totalOffered={Number(submission.total_offered ?? 0)}
+            totalPaid={
+              submission.total_paid !== null ? Number(submission.total_paid) : null
+            }
+            items={reviewItems}
+            conditionMultipliers={marginConfig.condition_multipliers}
           />
         </div>
       </div>

@@ -2,10 +2,9 @@ import { signOut } from "@/app/_actions/auth";
 import { getAdminIdentity } from "@/app/_actions/admin";
 
 /**
- * Admin header strip. Replaces the old "no auth wired yet" warning
- * now that Phase 2a has landed — shows the signed-in admin's identity
- * and an inline sign-out button. Kept on every /admin/* page via the
- * admin layout.
+ * Admin header strip: the signed-in admin's identity and an inline
+ * sign-out button. Kept on every /admin/* page via the admin layout.
+ * In preview mode the layout shows <PreviewBanner /> instead.
  */
 export async function DevBanner() {
   const me = await getAdminIdentity();
@@ -16,7 +15,7 @@ export async function DevBanner() {
       className="border-[3px] border-ink bg-highlight px-4 py-2 font-display text-[12px] tracking-wider text-ink flex items-center gap-3 justify-between rounded-md"
       role="status"
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         <span className="bg-ink text-paper-strong px-2 py-0.5 text-[10px]">
           ADMIN
         </span>

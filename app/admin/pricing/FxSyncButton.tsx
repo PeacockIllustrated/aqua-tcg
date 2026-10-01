@@ -26,7 +26,7 @@ export function FxSyncButton({
     start(async () => {
       const res = await triggerFxSync();
       if (!res.ok) {
-        setResult({ ok: false, text: res.error });
+        setResult({ ok: Boolean(res.preview), text: res.error });
         return;
       }
       if (res.status === "skipped") {
@@ -76,9 +76,7 @@ export function FxSyncButton({
         {result ? (
           <span
             role="status"
-            className={`font-display text-[10px] tracking-wider ${
-              result.ok ? "text-tint" : "text-warn"
-            }`}
+            className={`text-[12px] ${result.ok ? "text-secondary" : "text-warn"}`}
           >
             {result.text}
           </span>

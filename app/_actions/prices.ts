@@ -7,6 +7,9 @@
 import { cache } from "react";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { hasDatabase } from "@/lib/preview";
+import { getAdminViewer, PREVIEW_SAVE_MESSAGE } from "@/app/_actions/admin";
+import { sampleCoverage, sampleSyncRuns } from "@/lib/mock/admin-sample";
 import { runPriceSync } from "@/lib/sync/sync-prices";
 import { runFxSync } from "@/lib/sync/sync-fx";
 import type { LivePriceRow, SyncRunSummary } from "@/lib/prices/types";
@@ -21,6 +24,7 @@ import type { LivePriceRow, SyncRunSummary } from "@/lib/prices/types";
  */
 export const getLatestPricesForCard = cache(
   async (cardId: string): Promise<LivePriceRow[]> => {
+    if (!hasDatabase) return [];
     try {
       const supabase = await createClient();
       const { data, error } = await supabase
@@ -44,7 +48,7 @@ export const getLatestPricesForCard = cache(
 export const getLatestPricesForCards = cache(
   async (cardIds: string[]): Promise<Map<string, LivePriceRow[]>> => {
     const result = new Map<string, LivePriceRow[]>();
-    if (cardIds.length === 0) return result;
+    if (cardIds.length === 0 || !hasDatabase) return result;
     try {
       const supabase = await createClient();
       const { data, error } = await supabase
@@ -68,7 +72,9 @@ export async function getRecentSyncRuns(
   limit = 8,
 ): Promise<SyncRunSummary[]> {
   try {
-    const supabase = await createClient();
+    const viewer = await getAdminViewer();
+    if (viewer.preview) return sampleSyncRuns(limit);
+    const supabase = viewer.supabase;
     const { data } = await supabase
       .from("lewis_sync_runs")
       .select("*")
@@ -96,22 +102,12 @@ export async function triggerPriceSync(): Promise<
       pricesUpserted: number;
       durationMs: number;
     }
-  | { ok: false; error: string }
+  | { ok: false; error: string; preview?: boolean }
 > {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Not signed in" };
-
-  const { data: profile } = await supabase
-    .from("lewis_users")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if ((profile as { role?: string } | null)?.role !== "admin") {
-    return { ok: false, error: "Admin only" };
-  }
+  const viewer = await getAdminViewer();
+  if (viewer.preview) return { ok: false, error: PREVIEW_SAVE_MESSAGE, preview: true };
+  if (!viewer.user) return { ok: false, error: "Not signed in" };
+  if (!viewer.isAdmin) return { ok: false, error: "Admin only" };
 
   try {
     const result = await runPriceSync();
@@ -148,23 +144,13 @@ export type TriggerFxResult =
       durationMs: number;
       reason?: string;
     }
-  | { ok: false; error: string };
+  | { ok: false; error: string; preview?: boolean };
 
 export async function triggerFxSync(): Promise<TriggerFxResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Not signed in" };
-
-  const { data: profile } = await supabase
-    .from("lewis_users")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if ((profile as { role?: string } | null)?.role !== "admin") {
-    return { ok: false, error: "Admin only" };
-  }
+  const viewer = await getAdminViewer();
+  if (viewer.preview) return { ok: false, error: PREVIEW_SAVE_MESSAGE, preview: true };
+  if (!viewer.user) return { ok: false, error: "Not signed in" };
+  if (!viewer.isAdmin) return { ok: false, error: "Admin only" };
 
   try {
     const result = await runFxSync();
@@ -203,25 +189,16 @@ export type CommitMappingsResult =
       skippedManualOverrides: number;
       matchedTotal: number;
     }
-  | { ok: false; error: string };
+  | { ok: false; error: string; preview?: boolean };
 
 export async function commitMappingsForSet(
   setId: string,
 ): Promise<CommitMappingsResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Not signed in" };
-
-  const { data: profile } = await supabase
-    .from("lewis_users")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if ((profile as { role?: string } | null)?.role !== "admin") {
-    return { ok: false, error: "Admin only" };
-  }
+  const viewer = await getAdminViewer();
+  if (viewer.preview) return { ok: false, error: PREVIEW_SAVE_MESSAGE, preview: true };
+  if (!viewer.user) return { ok: false, error: "Not signed in" };
+  if (!viewer.isAdmin) return { ok: false, error: "Admin only" };
+  const supabase = viewer.supabase;
 
   try {
     const { getCardsBySet } = await import("@/lib/fixtures/cards");
@@ -314,7 +291,9 @@ export async function getCardCoverageStats(): Promise<{
   lastSyncAt: string | null;
 }> {
   try {
-    const supabase = await createClient();
+    const viewer = await getAdminViewer();
+    if (viewer.preview) return sampleCoverage();
+    const supabase = viewer.supabase;
     const [{ count: totalCards }, { count: withPrices }, { data: lastRun }] =
       await Promise.all([
         supabase.from("lewis_cards").select("id", { count: "exact", head: true }),

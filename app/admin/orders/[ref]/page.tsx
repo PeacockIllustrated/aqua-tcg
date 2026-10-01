@@ -40,7 +40,7 @@ export default async function AdminOrderDetailPage({
       </nav>
 
       <header className="flex flex-col gap-2">
-        <Annotation>ADMIN · ORDER</Annotation>
+        <Annotation>SHOP ORDER</Annotation>
         <h1 className="font-display text-[28px] tracking-tight break-all">
           {order.reference}
         </h1>
@@ -50,7 +50,7 @@ export default async function AdminOrderDetailPage({
           </span>
           {order.payment_method === "stub" ? (
             <span className="font-display text-[10px] tracking-wider border-2 border-ink rounded-sm px-2 py-0.5 bg-brand">
-              STUB PAYMENT
+              TEST PAYMENT
             </span>
           ) : null}
           {order.add_to_binder_opt_in ? (
@@ -79,11 +79,11 @@ export default async function AdminOrderDetailPage({
               href={`/admin/users#${buyer.id}`}
               className="text-[11px] font-display tracking-wider text-brand underline underline-offset-2 decoration-2 self-start"
             >
-              Open buyer profile →
+              View in users →
             </Link>
           ) : (
             <div className="text-[11px] text-muted">
-              (buyer deleted their account — snapshot retained)
+              Guest checkout or deleted account — details kept on the order.
             </div>
           )}
         </div>

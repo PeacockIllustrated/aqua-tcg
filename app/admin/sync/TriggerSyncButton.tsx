@@ -32,9 +32,8 @@ export function TriggerSyncButton() {
             : "Run sync now →"}
         </Button>
         <span className="text-[11px] text-muted font-display tracking-wider">
-          Hits TCGCSV for all 215 sets · upserts{" "}
-          <code className="font-mono">lewis_cards</code> +{" "}
-          <code className="font-mono">lewis_card_prices</code>.
+          Pulls the latest TCGplayer market prices for every set in the
+          catalogue.
         </span>
       </div>
 
@@ -59,7 +58,14 @@ export function TriggerSyncButton() {
       ) : null}
 
       {result && !result.ok ? (
-        <div className="bg-warn/10 border-2 border-warn text-warn rounded-md px-3 py-2 text-[12px]">
+        <div
+          role={result.preview ? "status" : "alert"}
+          className={`border-2 rounded-md px-3 py-2 text-[12px] ${
+            result.preview
+              ? "bg-highlight/30 border-ink text-ink"
+              : "bg-warn/10 border-warn text-warn"
+          }`}
+        >
           {result.error}
         </div>
       ) : null}

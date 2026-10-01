@@ -7,12 +7,8 @@ import {
   getAdminSubmissionStats,
   getAdminRecentActivity,
 } from "@/app/_actions/admin";
-import { listAdminOrders } from "@/app/_actions/admin-shop";
-import {
-  MOCK_LISTINGS,
-  FEATURED_SLOT_COUNT,
-  getFeaturedListings,
-} from "@/lib/mock/mock-listings";
+import { listAdminListings, listAdminOrders } from "@/app/_actions/admin-shop";
+import { FEATURED_SLOT_COUNT } from "@/lib/mock/mock-listings";
 import { formatGBP } from "@/lib/mock/mock-offer";
 import type { SubmissionStatus, ShopOrderStatus } from "@/lib/supabase/types";
 
@@ -53,10 +49,11 @@ type ActivityRow = {
 };
 
 export default async function AdminDashboardPage() {
-  const [stats, submissionActivity, orders] = await Promise.all([
+  const [stats, submissionActivity, orders, listings] = await Promise.all([
     getAdminSubmissionStats(),
     getAdminRecentActivity(6),
     listAdminOrders("all"),
+    listAdminListings("all"),
   ]);
 
   const revenueGross = orders
@@ -68,11 +65,15 @@ export default async function AdminDashboardPage() {
   const pendingPayment = orders.filter(
     (o) => o.status === "pending_payment",
   ).length;
-  const activeListings = MOCK_LISTINGS.filter((l) => l.status === "active").length;
-  const lowStock = MOCK_LISTINGS.filter(
-    (l) => l.status === "active" && l.qty_in_stock <= 1,
+  const activeListings = listings.filter((l) => l.status === "active").length;
+  const lowStock = listings.filter(
+    // Graded slabs are one-offs by nature; only raw singles can run low.
+    (l) => l.status === "active" && l.variant === "raw" && l.qty_in_stock <= 1,
   ).length;
-  const featured = getFeaturedListings(FEATURED_SLOT_COUNT);
+  const featured = listings
+    .filter((l) => l.is_featured && l.status === "active" && l.qty_in_stock > 0)
+    .sort((a, b) => (a.featured_priority ?? 99) - (b.featured_priority ?? 99))
+    .slice(0, FEATURED_SLOT_COUNT);
   const emptyFeaturedSlots = FEATURED_SLOT_COUNT - featured.length;
 
   const activity: ActivityRow[] = [
@@ -113,7 +114,7 @@ export default async function AdminDashboardPage() {
       <AdminPageHeader
         crumbs={[{ label: "Admin", href: "/admin" }, { label: "Dashboard" }]}
         title="Today at the shop"
-        kicker={{ label: "LIVE", tone: "tint" }}
+        kicker={{ label: "OVERVIEW", tone: "tint" }}
         subtitle="The two sides of the business in one glance — buy queue, sell queue, and what needs your attention now."
       />
 
@@ -243,14 +244,14 @@ export default async function AdminDashboardPage() {
             <StatCard
               label="Active listings"
               value={activeListings}
-              sub={`${MOCK_LISTINGS.length} total stocked`}
+              sub={`${listings.length} total stocked`}
               href="/admin/inventory"
             />
             <StatCard
               label="Low-stock alerts"
               value={lowStock}
               tone={lowStock > 0 ? "warn" : "paper"}
-              sub={lowStock > 0 ? "1 or fewer in stock" : "Healthy"}
+              sub={lowStock > 0 ? "Raw singles with 1 or fewer left" : "Healthy"}
               href="/admin/inventory"
             />
           </div>
@@ -348,14 +349,14 @@ export default async function AdminDashboardPage() {
           <TBody>
             {activity.length === 0 ? (
               <TR>
-                <TD className="text-center text-secondary py-6">
+                <TD colSpan={6} className="text-center text-secondary py-6">
                   No activity yet — waiting for your first submission.
                 </TD>
               </TR>
             ) : (
               activity.map((a) => (
                 <TR key={`${a.kind}-${a.ref}`}>
-                  <TD className="text-muted text-[11px] font-mono tabular-nums">
+                  <TD className="text-muted text-[11px] font-mono tabular-nums whitespace-nowrap">
                     {new Date(a.when).toISOString().slice(0, 16).replace("T", " ")}
                   </TD>
                   <TD>
@@ -372,13 +373,13 @@ export default async function AdminDashboardPage() {
                   <TD>
                     <Link
                       href={a.href}
-                      className="font-mono text-[12px] underline underline-offset-4 decoration-2 hover:text-brand"
+                      className="font-mono text-[12px] underline underline-offset-4 decoration-2 hover:text-brand whitespace-nowrap"
                     >
                       {a.ref}
                     </Link>
                   </TD>
-                  <TD className="text-[13px]">{a.who}</TD>
-                  <TD className="text-[12px] font-display tracking-wider uppercase">
+                  <TD className="text-[13px] whitespace-nowrap">{a.who}</TD>
+                  <TD className="text-[12px] font-display tracking-wider uppercase whitespace-nowrap">
                     {a.status}
                   </TD>
                   <TD className="text-right font-display tabular-nums">
