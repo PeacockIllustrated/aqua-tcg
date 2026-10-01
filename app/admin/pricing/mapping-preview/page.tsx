@@ -165,16 +165,16 @@ export default async function MappingPreviewPage() {
         ) : null}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Tile label="Matched" value={totals.matched} of={totals.localTotal} tone="wave" />
-          <Tile label="Ambiguous" value={totals.ambiguous} tone={totals.ambiguous > 0 ? "ocean" : "paper"} />
+          <Tile label="Matched" value={totals.matched} of={totals.localTotal} tone="tint" />
+          <Tile label="Ambiguous" value={totals.ambiguous} tone={totals.ambiguous > 0 ? "brand" : "paper"} />
           <Tile label="Unmatched" value={totals.unmatched} tone={totals.unmatched > 0 ? "warn" : "paper"} />
-          <Tile label="Orphan TCG products" value={totals.orphans} tone="sun" />
+          <Tile label="Orphan TCG products" value={totals.orphans} tone="highlight" />
         </div>
 
         <div className="grid grid-cols-3 gap-3 pt-1">
-          <SubTile label="Exact (number + name)" value={totals.exact} total={totals.matched} tone="wave" />
-          <SubTile label="Number-only (name mismatch)" value={totals.numberOnly} total={totals.matched} tone={totals.numberOnly > 0 ? "sun" : "paper"} />
-          <SubTile label="Name-fuzzy (no number)" value={totals.nameFuzzy} total={totals.matched} tone={totals.nameFuzzy > 0 ? "ocean" : "paper"} />
+          <SubTile label="Exact (number + name)" value={totals.exact} total={totals.matched} tone="tint" />
+          <SubTile label="Number-only (name mismatch)" value={totals.numberOnly} total={totals.matched} tone={totals.numberOnly > 0 ? "highlight" : "paper"} />
+          <SubTile label="Name-fuzzy (no number)" value={totals.nameFuzzy} total={totals.matched} tone={totals.nameFuzzy > 0 ? "brand" : "paper"} />
         </div>
       </section>
 
@@ -226,7 +226,7 @@ export default async function MappingPreviewPage() {
                       </span>
                     ) : "—"}
                   </TD>
-                  <TD className={`text-right font-mono ${s.result && s.result.ambiguous.length > 0 ? "text-ocean font-bold" : ""}`}>
+                  <TD className={`text-right font-mono ${s.result && s.result.ambiguous.length > 0 ? "text-brand font-bold" : ""}`}>
                     {s.result ? s.result.ambiguous.length : "—"}
                   </TD>
                   <TD className={`text-right font-mono ${s.result && s.result.unmatched.length > 0 ? "text-warn font-bold" : ""}`}>
@@ -391,7 +391,7 @@ export default async function MappingPreviewPage() {
                           <TD><code className="font-mono">{m.productId}</code></TD>
                           <TD>{m.productName}</TD>
                           <TD>
-                            <span className={`font-display text-[10px] tracking-wider border-2 border-ink px-2 py-0.5 ${m.confidence === "number-only" ? "bg-sun" : "bg-ocean"}`}>
+                            <span className={`font-display text-[10px] tracking-wider border-2 border-ink px-2 py-0.5 ${m.confidence === "number-only" ? "bg-highlight" : "bg-brand"}`}>
                               {m.confidence}
                             </span>
                           </TD>
@@ -479,12 +479,12 @@ function Tile({
   label: string;
   value: number;
   of?: number;
-  tone: "wave" | "ocean" | "sun" | "warn" | "paper";
+  tone: "tint" | "brand" | "highlight" | "warn" | "paper";
 }) {
   const bg =
-    tone === "wave" ? "bg-wave"
-    : tone === "ocean" ? "bg-ocean"
-    : tone === "sun" ? "bg-sun"
+    tone === "tint" ? "bg-tint"
+    : tone === "brand" ? "bg-brand"
+    : tone === "highlight" ? "bg-highlight"
     : tone === "warn" ? "bg-warn text-paper-strong"
     : "bg-paper-strong";
   return (
@@ -509,12 +509,12 @@ function SubTile({
   label: string;
   value: number;
   total: number;
-  tone: "wave" | "ocean" | "sun" | "paper";
+  tone: "tint" | "brand" | "highlight" | "paper";
 }) {
   const bg =
-    tone === "wave" ? "bg-wave/60"
-    : tone === "ocean" ? "bg-ocean/50"
-    : tone === "sun" ? "bg-sun/60"
+    tone === "tint" ? "bg-tint/60"
+    : tone === "brand" ? "bg-brand/50"
+    : tone === "highlight" ? "bg-highlight/60"
     : "bg-paper-strong";
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   return (
@@ -530,7 +530,7 @@ function SubTile({
 
 function Good({ children }: { children: React.ReactNode }) {
   return (
-    <div className="border-2 border-ink bg-wave/30 px-4 py-2 rounded-md text-[13px]">
+    <div className="border-2 border-ink bg-tint/30 px-4 py-2 rounded-md text-[13px]">
       ✓ {children}
     </div>
   );

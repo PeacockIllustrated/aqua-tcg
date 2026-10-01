@@ -7,7 +7,7 @@ import { useMemo, useSyncExternalStore } from "react";
  * across devices is deliberately out of scope for Phase 7 (see brief).
  *
  * Stored shape:
- *   localStorage['cardbuy:cart'] = JSON.stringify(CartLine[])
+ *   localStorage['shop:cart'] = JSON.stringify(CartLine[])
  * Cross-tab sync via the 'storage' window event.
  * ───────────────────────────────────────────────────────────────── */
 
@@ -16,8 +16,8 @@ export type CartLine = {
   qty: number;
 };
 
-const STORAGE_KEY = "cardbuy:cart";
-const EVENT_NAME = "cardbuy:cart-update";
+const STORAGE_KEY = "shop:cart";
+const EVENT_NAME = "shop:cart-update";
 
 function readCart(): CartLine[] {
   if (typeof window === "undefined") return [];

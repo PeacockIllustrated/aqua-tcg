@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 130" fill="none">
+  <!-- Placeholder mark: two stacked cards with a star. Swap via NEXT_PUBLIC_SHOP_LOGO. -->
+  <rect x="30" y="8" width="72" height="100" rx="8" transform="rotate(10 66 58)" fill="#d4d4d8" stroke="#0a0a0a" stroke-width="6"/>
+  <g transform="rotate(-6 52 70)">
+    <rect x="16" y="20" width="72" height="100" rx="8" fill="#ffffff" stroke="#0a0a0a" stroke-width="6"/>
+    <path d="M52 46 L59 62 L76 63 L63 74 L67 91 L52 82 L37 91 L41 74 L28 63 L45 62 Z" fill="#6b7280" stroke="#0a0a0a" stroke-width="5" stroke-linejoin="round"/>
+  </g>
+</svg>

@@ -3,6 +3,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/_actions/auth";
 import { WaveDivider } from "@/components/cardbuy/WaveDivider";
+import { brand } from "@/lib/brand";
 
 export async function SellerNav() {
   const supabase = await createClient();
@@ -25,7 +26,7 @@ export async function SellerNav() {
       <div className="max-w-[1300px] mx-auto px-3 md:px-4 py-2.5 md:py-3 flex items-center justify-between gap-2 md:gap-6">
         <Link href="/" className="flex items-center gap-2 shrink-0">
           <Image
-            src="/aqua-tcg.svg"
+            src={brand.logo}
             alt=""
             width={30}
             height={32}
@@ -33,22 +34,24 @@ export async function SellerNav() {
             className="w-[26px] h-[28px] md:w-[30px] md:h-[32px]"
           />
           <span className="font-display text-[18px] md:text-[24px] tracking-tight leading-none">
-            <span className="text-ocean">Aqua</span>
-            <span className="text-sun">&nbsp;TCG</span>
+            <span>{brand.wordmark[0]}</span>
+            {brand.wordmark[1] ? (
+              <span className="text-brand">&nbsp;{brand.wordmark[1]}</span>
+            ) : null}
           </span>
-          <span className="hidden sm:inline-block bg-ocean text-paper-strong border-2 border-ink px-1.5 py-0.5 text-[9px] font-display tracking-wider rotate-[-2deg]">
+          <span className="hidden sm:inline-block bg-brand text-paper-strong border-2 border-ink px-1.5 py-0.5 text-[9px] font-display tracking-wider rotate-[-2deg]">
             BETA
           </span>
         </Link>
         <nav className="flex items-center gap-0.5 md:gap-1 font-display text-[11px] md:text-[12px] tracking-wider min-w-0">
-          <NavLink href="/shop" tone="ocean">Shop</NavLink>
-          <NavLink href="/packs" tone="sun">Sell</NavLink>
-          <NavLink href="/binder" tone="wave" hideOnNarrow>Binder</NavLink>
-          <NavLink href="/submission" tone="wave" hideOnNarrow>
+          <NavLink href="/shop" tone="brand">Shop</NavLink>
+          <NavLink href="/packs" tone="highlight">Sell</NavLink>
+          <NavLink href="/binder" tone="tint" hideOnNarrow>Binder</NavLink>
+          <NavLink href="/submission" tone="tint" hideOnNarrow>
             <span className="md:hidden">Cart</span>
             <span className="hidden md:inline">My&nbsp;sub</span>
           </NavLink>
-          <NavLink href="/shop/cart" tone="ocean">Basket</NavLink>
+          <NavLink href="/shop/cart" tone="brand">Basket</NavLink>
 
           {user ? (
             <div className="hidden sm:flex items-center gap-2 shrink-0 ml-1 md:ml-2 pl-2 md:pl-3 border-l-2 border-ink/15">
@@ -62,7 +65,7 @@ export async function SellerNav() {
               <form action={signOut}>
                 <button
                   type="submit"
-                  className="font-display text-[10px] tracking-wider text-ink underline underline-offset-4 decoration-2 hover:text-ocean"
+                  className="font-display text-[10px] tracking-wider text-ink underline underline-offset-4 decoration-2 hover:text-brand"
                 >
                   Sign out
                 </button>
@@ -71,7 +74,7 @@ export async function SellerNav() {
           ) : (
             <Link
               href="/login"
-              className="hidden sm:inline-flex shrink-0 ml-1 md:ml-2 px-2 py-1 border-2 border-ink rounded-sm bg-sun text-ink font-display text-[10px] md:text-[11px] tracking-wider hover:bg-ocean"
+              className="hidden sm:inline-flex shrink-0 ml-1 md:ml-2 px-2 py-1 border-2 border-ink rounded-sm bg-highlight text-ink font-display text-[10px] md:text-[11px] tracking-wider hover:bg-brand"
             >
               Sign in
             </Link>
@@ -87,7 +90,7 @@ export async function SellerNav() {
           ) : null}
         </nav>
       </div>
-      <WaveDivider fill="var(--color-ocean)" height={10} />
+      <WaveDivider fill="var(--color-brand)" height={10} />
     </header>
   );
 }
@@ -100,15 +103,15 @@ function NavLink({
 }: {
   href: string;
   children: React.ReactNode;
-  tone: "ocean" | "wave" | "sun";
+  tone: "brand" | "tint" | "highlight";
   hideOnNarrow?: boolean;
 }) {
   const hover =
-    tone === "ocean"
-      ? "hover:bg-ocean"
-      : tone === "wave"
-        ? "hover:bg-wave"
-        : "hover:bg-sun";
+    tone === "brand"
+      ? "hover:bg-brand"
+      : tone === "tint"
+        ? "hover:bg-tint"
+        : "hover:bg-highlight";
   return (
     <Link
       href={href}

@@ -92,7 +92,7 @@ export function BinderChipRow({
           onClick={handleOwnClick}
           disabled={pending}
           className={`pop-block rounded-sm px-3 py-1.5 font-display text-[11px] tracking-wider text-ink flex items-center gap-2 disabled:opacity-50 ${
-            totalCopies > 0 ? "bg-wave" : "bg-paper-strong"
+            totalCopies > 0 ? "bg-tint" : "bg-paper-strong"
           }`}
         >
           <span className="text-[13px] leading-none">
@@ -110,7 +110,7 @@ export function BinderChipRow({
           onClick={handleWishlistClick}
           disabled={pending}
           className={`pop-block rounded-sm px-3 py-1.5 font-display text-[11px] tracking-wider text-ink flex items-center gap-2 disabled:opacity-50 ${
-            onWishlist ? "bg-sun" : "bg-paper-strong"
+            onWishlist ? "bg-highlight" : "bg-paper-strong"
           }`}
         >
           <span className="text-[13px] leading-none">★</span>
@@ -126,7 +126,7 @@ export function BinderChipRow({
             setScannerOpen(true);
           }}
           disabled={pending}
-          className="pop-block rounded-sm bg-ocean px-3 py-1.5 font-display text-[11px] tracking-wider text-ink flex items-center gap-2 disabled:opacity-50"
+          className="pop-block rounded-sm bg-brand px-3 py-1.5 font-display text-[11px] tracking-wider text-ink flex items-center gap-2 disabled:opacity-50"
           title="Scan a graded slab with your camera"
         >
           <span className="text-[13px] leading-none">◉</span>
@@ -253,7 +253,7 @@ function AddDrawer({
                 setConfirmDupe(false);
               }}
               className={`border-2 border-ink rounded-sm px-2 py-0.5 font-display text-[10px] tracking-wider ${
-                variant === v ? "bg-sun" : "bg-paper-strong"
+                variant === v ? "bg-highlight" : "bg-paper-strong"
               }`}
             >
               {v === "raw" ? "Raw" : "Graded"}
@@ -331,7 +331,7 @@ function AddDrawer({
       </label>
 
       {dupeExists && confirmDupe ? (
-        <div className="text-[11px] text-ink bg-sun border-2 border-ink rounded-sm px-2 py-1.5">
+        <div className="text-[11px] text-ink bg-highlight border-2 border-ink rounded-sm px-2 py-1.5">
           You already have a {gradingCompany} {grade} copy. Click{" "}
           <strong>Add</strong> again to confirm.
         </div>
@@ -342,7 +342,7 @@ function AddDrawer({
           type="button"
           onClick={handleSubmit}
           disabled={pending}
-          className="pop-block rounded-sm bg-wave px-3 py-1 font-display text-[11px] tracking-wider text-ink disabled:opacity-50"
+          className="pop-block rounded-sm bg-tint px-3 py-1 font-display text-[11px] tracking-wider text-ink disabled:opacity-50"
         >
           {pending ? "Adding…" : "Add"}
         </button>
@@ -407,7 +407,7 @@ function CopiesDrawer({
           >
             {e.is_grail ? (
               <span
-                className="w-5 h-5 grid place-items-center rounded-full bg-sun border-2 border-ink font-display text-[10px] shrink-0"
+                className="w-5 h-5 grid place-items-center rounded-full bg-highlight border-2 border-ink font-display text-[10px] shrink-0"
                 title="Grail"
               >
                 ★
@@ -419,7 +419,7 @@ function CopiesDrawer({
                 : e.condition}
             </span>
             {e.quantity > 1 ? (
-              <span className="ml-auto font-display text-[10px] tabular-nums text-wave">
+              <span className="ml-auto font-display text-[10px] tabular-nums text-tint">
                 ×{e.quantity}
               </span>
             ) : null}

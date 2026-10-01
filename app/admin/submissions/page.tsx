@@ -21,15 +21,15 @@ const STATUS_LABELS: Record<SubmissionStatus, string> = {
 };
 
 const STATUS_TONES: Partial<
-  Record<SubmissionStatus, "ocean" | "wave" | "sun" | "warn" | "muted">
+  Record<SubmissionStatus, "brand" | "tint" | "highlight" | "warn" | "muted">
 > = {
-  submitted: "sun",
-  awaiting_cards: "sun",
-  received: "wave",
-  under_review: "wave",
-  offer_revised: "ocean",
-  approved: "wave",
-  paid: "wave",
+  submitted: "highlight",
+  awaiting_cards: "highlight",
+  received: "tint",
+  under_review: "tint",
+  offer_revised: "brand",
+  approved: "tint",
+  paid: "tint",
   rejected: "warn",
   returned: "muted",
   cancelled: "muted",
@@ -70,7 +70,7 @@ export default async function AdminSubmissionsPage({
         title="Submissions"
         kicker={{
           label: active === "all" ? "ALL" : (STATUS_LABELS[active as SubmissionStatus] ?? String(active)).toUpperCase(),
-          tone: "sun",
+          tone: "highlight",
         }}
         subtitle="Incoming buylist packages — track status, quote, pay out."
         actions={
@@ -94,7 +94,7 @@ export default async function AdminSubmissionsPage({
               className={`border-2 rounded-sm px-2.5 py-1 font-display text-[11px] tracking-wider uppercase transition-colors ${
                 isActive
                   ? "border-ink bg-ink text-paper-strong"
-                  : "border-ink bg-paper-strong text-ink hover:bg-sun"
+                  : "border-ink bg-paper-strong text-ink hover:bg-highlight"
               }`}
             >
               {t.label}
@@ -126,12 +126,12 @@ export default async function AdminSubmissionsPage({
             rows.map((s) => {
               const tone = STATUS_TONES[s.status];
               const toneCls =
-                tone === "ocean"
-                  ? "bg-ocean text-ink"
-                  : tone === "wave"
-                    ? "bg-wave text-ink"
-                    : tone === "sun"
-                      ? "bg-sun text-ink"
+                tone === "brand"
+                  ? "bg-brand text-ink"
+                  : tone === "tint"
+                    ? "bg-tint text-ink"
+                    : tone === "highlight"
+                      ? "bg-highlight text-ink"
                       : tone === "warn"
                         ? "bg-warn text-paper-strong"
                         : "bg-paper-strong text-muted";

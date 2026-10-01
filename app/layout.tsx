@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Archivo_Black, Inter } from "next/font/google";
 import "./globals.css";
 import { PageFooter } from "@/components/wireframe/PageFooter";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { brand } from "@/lib/brand";
 
 const archivoBlack = Archivo_Black({
   weight: "400",
@@ -17,29 +19,28 @@ const inter = Inter({
   weight: ["400", "500", "700"],
 });
 
+const title = `${brand.name} · buy & sell Pokémon cards`;
+
 export const metadata: Metadata = {
   title: {
-    default: "Aqua TCG · buy & sell Pokémon cards",
-    template: "%s · Aqua TCG",
+    default: title,
+    template: `%s · ${brand.name}`,
   },
-  description:
-    "Buy graded and raw Pokémon cards from a UK dealer, or sell yours for an instant GBP offer.",
-  applicationName: "Aqua TCG",
-  icons: { icon: "/aqua-tcg.svg" },
+  description: brand.description,
+  applicationName: brand.name,
+  icons: { icon: brand.logo },
   robots: { index: true, follow: true },
   openGraph: {
     type: "website",
-    siteName: "Aqua TCG",
-    title: "Aqua TCG · buy & sell Pokémon cards",
-    description:
-      "Buy graded and raw Pokémon cards from a UK dealer, or sell yours for an instant GBP offer.",
+    siteName: brand.name,
+    title,
+    description: brand.description,
     locale: "en_GB",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Aqua TCG · buy & sell Pokémon cards",
-    description:
-      "Buy graded and raw Pokémon cards from a UK dealer, or sell yours for an instant GBP offer.",
+    title,
+    description: brand.description,
   },
   formatDetection: { telephone: false, email: false, address: false },
 };
@@ -50,11 +51,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-theme={brand.theme}
+      suppressHydrationWarning
       className={`${archivoBlack.variable} ${inter.variable} h-full`}
     >
       <body className="min-h-full flex flex-col bg-paper text-ink font-sans text-[15px] leading-[1.55]">
         <main className="flex-1 overflow-x-clip">{children}</main>
         <PageFooter />
+        {brand.demoMode ? <ThemeSwitcher initial={brand.theme} /> : null}
       </body>
     </html>
   );

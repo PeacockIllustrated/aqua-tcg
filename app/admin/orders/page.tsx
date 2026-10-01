@@ -63,7 +63,7 @@ export default async function AdminOrdersPage({
         title="Orders"
         kicker={{
           label: active === "all" ? "ALL" : (STATUS_LABELS[active as ShopOrderStatus] ?? String(active)).toUpperCase(),
-          tone: "ocean",
+          tone: "brand",
         }}
         subtitle="Every shopfront order — payment, pack, ship, done."
         actions={
@@ -79,13 +79,13 @@ export default async function AdminOrdersPage({
         <StatCard
           label="Pending payment"
           value={pendingPaymentCount}
-          tone={pendingPaymentCount > 0 ? "ocean" : "paper"}
+          tone={pendingPaymentCount > 0 ? "brand" : "paper"}
           href={pendingPaymentCount > 0 ? "/admin/orders?status=pending_payment" : undefined}
         />
         <StatCard
           label="To pack"
           value={toPackCount}
-          tone={toPackCount > 0 ? "wave" : "paper"}
+          tone={toPackCount > 0 ? "tint" : "paper"}
           href={toPackCount > 0 ? "/admin/orders?status=paid" : undefined}
         />
       </section>
@@ -144,7 +144,7 @@ export default async function AdminOrdersPage({
                 </TD>
                 <TD className="text-[11px]">
                   {o.payment_method === "stub" ? (
-                    <span className="font-display tracking-wider text-ocean">
+                    <span className="font-display tracking-wider text-brand">
                       STUB
                     </span>
                   ) : o.payment_method === "stripe_card" ? (
@@ -199,11 +199,11 @@ function StatusBadge({
   children: React.ReactNode;
 }) {
   const tone: Record<ShopOrderStatus, string> = {
-    pending_payment: "bg-ocean",
-    paid: "bg-sun",
-    packing: "bg-sun",
-    shipped: "bg-wave",
-    delivered: "bg-wave",
+    pending_payment: "bg-brand",
+    paid: "bg-highlight",
+    packing: "bg-highlight",
+    shipped: "bg-tint",
+    delivered: "bg-tint",
     refunded: "bg-paper",
     cancelled: "bg-paper",
   };

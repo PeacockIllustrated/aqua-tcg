@@ -89,7 +89,7 @@ async function main() {
   console.log(`local sets: ${sets.length}`);
   console.log(`fetching TCGCSV groups…`);
   const res = await fetch(TCGCSV, {
-    headers: { "User-Agent": "lewis-pokemon-platform/0.1 (alias-resolve)" },
+    headers: { "User-Agent": "tcg-shop-platform/0.1 (alias-resolve)" },
   });
   const body = await res.json();
   if (!body.success) throw new Error("tcgcsv error");

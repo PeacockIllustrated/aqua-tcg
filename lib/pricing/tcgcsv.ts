@@ -77,7 +77,7 @@ type TcgResponse<T> = {
  */
 async function rawFetch<T>(url: string): Promise<TcgResponse<T>> {
   const res = await fetch(url, {
-    headers: { "User-Agent": "lewis-pokemon-platform/0.1 (phase3-verification)" },
+    headers: { "User-Agent": "tcg-shop-platform/0.1 (phase3-verification)" },
     cache: "no-store",
   });
   if (!res.ok) {

@@ -1,5 +1,5 @@
 /**
- * Aqua TCG wave motif — a full-bleed decorative crest used at section
+ * Wave motif — a full-bleed decorative crest used at section
  * seams (header base, hero→content, footer top). Purpose-built path,
  * not lifted from the logo (the logo is a mark, not a tileable strip).
  *
@@ -10,7 +10,7 @@
  * Decorative only — `aria-hidden`, no pointer surface.
  */
 export function WaveDivider({
-  fill = "var(--color-ocean)",
+  fill = "var(--color-brand)",
   height = 24,
   flip = false,
   className = "",

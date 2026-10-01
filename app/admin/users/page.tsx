@@ -5,7 +5,7 @@ import { listAdminUsers } from "@/app/_actions/admin";
 import { formatGBP } from "@/lib/mock/mock-offer";
 
 export const metadata = {
-  title: "Users · Aqua TCG admin",
+  title: "Users · Admin",
 };
 
 function formatDate(iso: string): string {
@@ -32,7 +32,7 @@ export default async function AdminUsersPage() {
           { label: "Users" },
         ]}
         title="Users"
-        kicker={{ label: "READ-ONLY", tone: "wave" }}
+        kicker={{ label: "READ-ONLY", tone: "tint" }}
         subtitle={
           <>
             Read-only view of <code className="font-mono">lewis_users</code> with submission
@@ -86,7 +86,7 @@ export default async function AdminUsersPage() {
                   <span
                     className={`border-2 border-ink px-1.5 py-0.5 font-display text-[9px] tracking-wider rounded-sm ${
                       u.role === "admin"
-                        ? "bg-ocean text-ink"
+                        ? "bg-brand text-ink"
                         : "bg-paper-strong text-ink"
                     }`}
                   >

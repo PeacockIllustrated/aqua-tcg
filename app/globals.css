@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
 /* ----------------------------------------------------------------
- * Aqua TCG brand palette (pop-art system, Aqua-TCG colourway).
- * Accent values sampled from public/aqua-tcg.svg.
+ * White-label palette (pop-art surface system, neutral colourway).
+ * Default is a deliberately unbranded greyscale; a shop's colours go in
+ * `--color-brand` / `--color-tint` / `--color-highlight`. Ready-made
+ * presets live under `[data-theme=…]` below — pick one with the
+ * NEXT_PUBLIC_THEME env var (see lib/brand.ts).
  * See PHASE5_BRANDING.md for the surface system this clothes.
  * ----------------------------------------------------------------*/
 @theme {
@@ -11,18 +14,18 @@
 
   /* Core */
   --color-ink: #0a0a0a;            /* outlines, headings, primary text */
-  --color-paper: #fff8e7;          /* cream page background */
+  --color-paper: #f5f5f4;          /* page background */
   --color-paper-strong: #ffffff;   /* pure white inner wells */
 
-  /* Accents — Aqua TCG three-up (from logo SVG) */
-  --color-ocean: #3399d2;          /* primary accent · CTAs · featured */
-  --color-wave: #6acdf1;           /* secondary · "buy" surfaces · badges */
-  --color-sun: #f69b26;            /* tertiary · wordmark · highlights */
+  /* Accents — the three slots a shop's brand fills */
+  --color-brand: #6b7280;          /* primary accent · CTAs · featured */
+  --color-tint: #d4d4d8;           /* secondary · "buy" surfaces · badges */
+  --color-highlight: #e7e5e4;      /* tertiary · wordmark · highlights */
 
   /* Support */
-  --color-rule: #e8dfc7;           /* cream-toned hairline */
-  --color-muted: #7a7466;          /* secondary text on cream */
-  --color-secondary: #4a4438;      /* darker secondary text */
+  --color-rule: #e5e5e5;           /* hairline */
+  --color-muted: #737373;          /* secondary text */
+  --color-secondary: #404040;      /* darker secondary text */
   --color-warn: #c00000;           /* admin DevBanner ONLY */
 
   /* Typography (font CSS vars come from next/font in app/layout.tsx) */
@@ -36,6 +39,34 @@
   --radius-md: 6px;
   --radius-lg: 10px;
   --radius-xl: 14px;
+}
+
+/* ----------------------------------------------------------------
+ * Theme presets — demo colourways for pitching. Each overrides only
+ * the accent slots + page ground; every utility (`bg-brand`, …) reads
+ * the variables so the whole site re-skins with no other changes.
+ * `brand` stays mid-luminance so both ink and white text read on it.
+ * ----------------------------------------------------------------*/
+[data-theme="ember"] {
+  --color-paper: #fff7ef;
+  --color-brand: #e2553b;
+  --color-tint: #ffc9a8;
+  --color-highlight: #ffd23f;
+  --color-rule: #f1e2d3;
+}
+[data-theme="forest"] {
+  --color-paper: #f4f7f0;
+  --color-brand: #2f9e6e;
+  --color-tint: #a8e6c9;
+  --color-highlight: #f2d14b;
+  --color-rule: #dfe8d8;
+}
+[data-theme="violet"] {
+  --color-paper: #f8f6ff;
+  --color-brand: #7c5cd6;
+  --color-tint: #c9b8ff;
+  --color-highlight: #ffd166;
+  --color-rule: #e6e0f7;
 }
 
 /* ----------------------------------------------------------------
@@ -125,9 +156,9 @@ input[type="number"] {
   text-transform: uppercase;
 }
 
-/* Selection: invert with ocean for personality */
+/* Selection: invert with brand for personality */
 ::selection {
-  background: var(--color-ocean);
+  background: var(--color-brand);
   color: var(--color-paper-strong);
 }
 

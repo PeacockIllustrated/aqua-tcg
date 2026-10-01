@@ -18,14 +18,18 @@
  * Canvas draw() short-circuits until the image is decoded.
  */
 
-/** Brand palette — mirrors CSS vars in `app/globals.css`. Canvas can't
- *  read `var(--color-…)` at draw time so we inline the hex. */
+/** Particle palette. Canvas can't read `var(--color-…)` at draw time
+ *  so we inline hex. Accents are energy-type colours rather than shop
+ *  brand colours, so they stay correct under any white-label theme. */
 export const COLORS = {
   ink: "#0a0a0a",
   paper: "#ffffff",
-  ocean: "#3399d2",
-  wave: "#6acdf1",
-  sun: "#f69b26",
+  fire: "#ef6a3a",
+  water: "#4a9be0",
+  grass: "#5bbf63",
+  lightning: "#f5c832",
+  psychic: "#b06ad8",
+  fighting: "#c7773a",
 } as const;
 
 /** TCG energy types driven by this system. Expand as new sprite SVGs
@@ -80,15 +84,14 @@ const SPRITE_PATHS: Record<ElementalType, string> = {
 /** Per-type brand-accent colour. Exported for React components that
  *  want to tint things (e.g. the starburst drop-shadow behind a
  *  featured tile) to match whichever particle set is active for that
- *  card. ocean/wave/sun mapping keeps the accents on-brand while
- *  still differentiating types. */
+ *  card. Each type maps to its own energy colour. */
 export const TYPE_GLOW_HEX: Record<ElementalType, string> = {
-  Fire: COLORS.ocean,
-  Water: COLORS.wave,
-  Grass: COLORS.wave,
-  Lightning: COLORS.sun,
-  Psychic: COLORS.ocean,
-  Fighting: COLORS.sun,
+  Fire: COLORS.fire,
+  Water: COLORS.water,
+  Grass: COLORS.grass,
+  Lightning: COLORS.lightning,
+  Psychic: COLORS.psychic,
+  Fighting: COLORS.fighting,
   Colorless: COLORS.paper,
 };
 

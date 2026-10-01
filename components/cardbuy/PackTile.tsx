@@ -18,14 +18,14 @@ const OPEN_DURATION_MS = 1400;
  *  [wrapper-dark, wrapper-light, foil-stripe]. Picked to read as a
  *  genuine booster wrapper rather than a flat swatch. */
 const PALETTES: Array<[string, string, string]> = [
-  ["#c41230", "#3399d2", "#f69b26"], // crimson · ocean · sun foil
-  ["#0e4f9f", "#6acdf1", "#ffffff"], // navy · wave · white foil
-  ["#6b2a9f", "#3399d2", "#6acdf1"], // purple · ocean · wave foil
-  ["#0a0a0a", "#f69b26", "#3399d2"], // ink · sun · ocean foil
-  ["#1d6b2a", "#6acdf1", "#f69b26"], // green · wave · sun foil
-  ["#b14b06", "#f69b26", "#3399d2"], // rust · sun · ocean foil
-  ["#064f77", "#6acdf1", "#f69b26"], // deep-blue · wave · sun foil
-  ["#8b0e66", "#3399d2", "#f69b26"], // magenta · ocean · sun foil
+  ["#c41230", "#e85d5d", "#f5c832"], // crimson · coral · gold foil
+  ["#0e4f9f", "#5fa8e8", "#ffffff"], // navy · sky · white foil
+  ["#6b2a9f", "#b07ce0", "#d9dde3"], // purple · lilac · silver foil
+  ["#0a0a0a", "#5c5c5c", "#f5c832"], // ink · graphite · gold foil
+  ["#1d6b2a", "#6cc47a", "#f5c832"], // green · leaf · gold foil
+  ["#b14b06", "#f08a3c", "#ffffff"], // rust · amber · white foil
+  ["#064f77", "#4fb3c9", "#d9dde3"], // deep-blue · teal · silver foil
+  ["#8b0e66", "#e06aa8", "#f5c832"], // magenta · pink · gold foil
 ];
 
 export function paletteFor(id: string): [string, string, string] {

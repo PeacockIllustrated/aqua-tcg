@@ -1,21 +1,21 @@
 /**
  * Small coloured chip rendering an energy type. Pokémon TCG cards have
  * ~11 canonical types; we map each to one of the three brand accents
- * (ocean / wave / sun) plus paper/ink so the chips read on-brand.
+ * (brand / tint / highlight) plus paper/ink so the chips read on-brand.
  *
  * Used for type badges on `/card/[id]` and for attack energy-cost pips.
  */
 
 const TYPE_ACCENT: Record<string, string> = {
-  Fire:       "bg-ocean text-ink",
-  Fighting:   "bg-ocean text-ink",
-  Dragon:     "bg-ocean text-ink",
-  Water:      "bg-wave text-ink",
-  Psychic:    "bg-wave text-ink",
-  Ice:        "bg-wave text-ink",
-  Lightning:  "bg-sun text-ink",
-  Grass:      "bg-sun text-ink",
-  Fairy:      "bg-sun text-ink",
+  Fire:       "bg-brand text-ink",
+  Fighting:   "bg-brand text-ink",
+  Dragon:     "bg-brand text-ink",
+  Water:      "bg-tint text-ink",
+  Psychic:    "bg-tint text-ink",
+  Ice:        "bg-tint text-ink",
+  Lightning:  "bg-highlight text-ink",
+  Grass:      "bg-highlight text-ink",
+  Fairy:      "bg-highlight text-ink",
   Darkness:   "bg-ink text-paper-strong",
   Metal:      "bg-ink text-paper-strong",
   Colorless:  "bg-paper-strong text-ink",

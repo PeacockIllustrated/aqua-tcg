@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 type SearchParams = Promise<{ error?: string }>;
 
 export const metadata = {
-  title: "Set a new password · Aqua TCG",
+  title: "Set a new password",
 };
 
 /**
@@ -87,7 +87,7 @@ export default async function ResetPasswordPage({
           </Button>
           <Link
             href="/"
-            className="font-display text-[11px] tracking-wider underline underline-offset-4 decoration-2 text-muted hover:text-ocean self-start"
+            className="font-display text-[11px] tracking-wider underline underline-offset-4 decoration-2 text-muted hover:text-brand self-start"
           >
             ← cancel
           </Link>

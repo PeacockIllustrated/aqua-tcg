@@ -42,9 +42,9 @@ export function TriggerSyncButton() {
         <div
           className={`pop-card rounded-md p-4 flex flex-col gap-1 text-[12px] ${
             result.status === "success"
-              ? "bg-wave/20"
+              ? "bg-tint/20"
               : result.status === "partial"
-                ? "bg-sun/20"
+                ? "bg-highlight/20"
                 : "bg-warn/10"
           }`}
         >
