@@ -216,10 +216,12 @@ function DesktopLadder({ cards }: Props) {
   return (
     <div
       ref={sectionRef}
-      className="hidden md:block relative px-6 lg:px-10"
+      className="hidden md:block relative px-4"
       style={{ height: `calc(100vh + ${N - 1} * 70vh)` }}
     >
-      <div className="sticky top-[88px] h-[calc(100vh-112px)] min-h-[560px] py-2">
+      {/* Same content column as the rest of the site (1300px minus its 16px gutters); height capped so
+          the stage doesn't balloon on tall screens. */}
+      <div className="sticky top-[88px] max-w-[1268px] mx-auto h-[min(calc(100vh-112px),760px)] min-h-[540px] py-2">
         <div
           className="relative h-full rounded-xl border-[3px] border-ink shadow-[6px_6px_0_0_var(--color-ink)] overflow-hidden flex flex-col transition-[background] duration-700"
           style={{ background: tier.bg }}
