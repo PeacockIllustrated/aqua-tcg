@@ -2,8 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getViewer } from "@/lib/preview-server";
+import { PREVIEW_PROFILE } from "@/lib/mock/mock-customer";
+import { previewError, type PreviewError } from "@/lib/mock/preview-actions";
 import type { LewisUser } from "@/lib/supabase/types";
 
 /* ─────────────────────────────────────────────────────────────────
@@ -12,6 +14,9 @@ import type { LewisUser } from "@/lib/supabase/types";
  * `consent_service_emails` is intentionally NOT editable here —
  * transactional mail is essential to the service, so there's no
  * legal opt-out short of deleting the account.
+ *
+ * Preview (signed out with preview mode on, or no DB): reads return the
+ * sample customer's consent; writes return a `PreviewError`.
  * ───────────────────────────────────────────────────────────────── */
 
 export type ConsentSnapshot = Pick<
@@ -25,11 +30,18 @@ export type ConsentSnapshot = Pick<
 >;
 
 export async function getMyConsent(): Promise<ConsentSnapshot | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const { supabase, user, preview } = await getViewer();
+  if (preview) {
+    return {
+      consent_service_emails: PREVIEW_PROFILE.consent_service_emails,
+      consent_marketing_buylist: PREVIEW_PROFILE.consent_marketing_buylist,
+      consent_marketing_shop: PREVIEW_PROFILE.consent_marketing_shop,
+      consent_aggregate_data: PREVIEW_PROFILE.consent_aggregate_data,
+      consent_updated_at: PREVIEW_PROFILE.consent_updated_at,
+      privacy_policy_accepted_at: PREVIEW_PROFILE.privacy_policy_accepted_at,
+    };
+  }
+  if (!user || !supabase) return null;
 
   const { data } = await supabase
     .from("lewis_users")
@@ -49,12 +61,10 @@ export type ConsentField =
 export async function updateConsent(
   field: ConsentField,
   value: boolean,
-): Promise<void> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/settings");
+): Promise<void | PreviewError> {
+  const { supabase, user, preview } = await getViewer();
+  if (preview) return previewError();
+  if (!user || !supabase) redirect("/login?next=/settings");
 
   const patch: Partial<LewisUser> = {
     [field]: value,
@@ -90,16 +100,20 @@ export async function updateConsent(
  * Caller must pass the phrase "DELETE MY ACCOUNT" as confirmation so
  * a stray button press can't nuke their data.
  */
-export async function deleteMyAccount(confirmation: string): Promise<void> {
+export async function deleteMyAccount(
+  confirmation: string,
+): Promise<void | PreviewError> {
   if (confirmation !== "DELETE MY ACCOUNT") {
-    throw new Error("Confirmation phrase did not match.");
+    return { error: "Confirmation phrase did not match." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { supabase, user, preview } = await getViewer();
+  if (preview) {
+    return previewError(
+      "Preview: this is the sample account, so there's nothing to delete.",
+    );
+  }
+  if (!user || !supabase) redirect("/login");
 
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.deleteUser(user.id);

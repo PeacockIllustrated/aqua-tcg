@@ -7,6 +7,7 @@ import {
   removeBinderEntry,
   toggleWishlist,
 } from "@/app/_actions/binder";
+import { unwrapAction } from "@/lib/mock/preview-actions";
 import { GradedCardScanner } from "@/components/cardbuy/binder/GradedCardScanner";
 import type {
   GradingCompany,
@@ -76,7 +77,7 @@ export function BinderChipRow({
     setOnWishlist(next);
     start(async () => {
       try {
-        await toggleWishlist(cardId);
+        unwrapAction(await toggleWishlist(cardId));
       } catch (e) {
         setOnWishlist(!next);
         setError(e instanceof Error ? e.message : "Failed to update wishlist");
@@ -92,7 +93,7 @@ export function BinderChipRow({
           onClick={handleOwnClick}
           disabled={pending}
           className={`pop-block rounded-sm px-3 py-1.5 font-display text-[11px] tracking-wider text-ink flex items-center gap-2 disabled:opacity-50 ${
-            totalCopies > 0 ? "bg-wave" : "bg-paper-strong"
+            totalCopies > 0 ? "bg-tint" : "bg-paper-strong"
           }`}
         >
           <span className="text-[13px] leading-none">
@@ -110,7 +111,7 @@ export function BinderChipRow({
           onClick={handleWishlistClick}
           disabled={pending}
           className={`pop-block rounded-sm px-3 py-1.5 font-display text-[11px] tracking-wider text-ink flex items-center gap-2 disabled:opacity-50 ${
-            onWishlist ? "bg-sun" : "bg-paper-strong"
+            onWishlist ? "bg-highlight" : "bg-paper-strong"
           }`}
         >
           <span className="text-[13px] leading-none">★</span>
@@ -126,7 +127,7 @@ export function BinderChipRow({
             setScannerOpen(true);
           }}
           disabled={pending}
-          className="pop-block rounded-sm bg-ocean px-3 py-1.5 font-display text-[11px] tracking-wider text-ink flex items-center gap-2 disabled:opacity-50"
+          className="pop-block rounded-sm bg-brand px-3 py-1.5 font-display text-[11px] tracking-wider text-ink flex items-center gap-2 disabled:opacity-50"
           title="Scan a graded slab with your camera"
         >
           <span className="text-[13px] leading-none">◉</span>
@@ -218,14 +219,16 @@ function AddDrawer({
     setError(null);
     start(async () => {
       try {
-        await addBinderEntry({
-          cardId,
-          variant,
-          condition: variant === "raw" ? condition : undefined,
-          gradingCompany: variant === "graded" ? gradingCompany : undefined,
-          grade: variant === "graded" ? grade : undefined,
-          quantity,
-        });
+        unwrapAction(
+          await addBinderEntry({
+            cardId,
+            variant,
+            condition: variant === "raw" ? condition : undefined,
+            gradingCompany: variant === "graded" ? gradingCompany : undefined,
+            grade: variant === "graded" ? grade : undefined,
+            quantity,
+          }),
+        );
         onClose();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to add");
@@ -253,7 +256,7 @@ function AddDrawer({
                 setConfirmDupe(false);
               }}
               className={`border-2 border-ink rounded-sm px-2 py-0.5 font-display text-[10px] tracking-wider ${
-                variant === v ? "bg-sun" : "bg-paper-strong"
+                variant === v ? "bg-highlight" : "bg-paper-strong"
               }`}
             >
               {v === "raw" ? "Raw" : "Graded"}
@@ -331,7 +334,7 @@ function AddDrawer({
       </label>
 
       {dupeExists && confirmDupe ? (
-        <div className="text-[11px] text-ink bg-sun border-2 border-ink rounded-sm px-2 py-1.5">
+        <div className="text-[11px] text-ink bg-highlight border-2 border-ink rounded-sm px-2 py-1.5">
           You already have a {gradingCompany} {grade} copy. Click{" "}
           <strong>Add</strong> again to confirm.
         </div>
@@ -342,7 +345,7 @@ function AddDrawer({
           type="button"
           onClick={handleSubmit}
           disabled={pending}
-          className="pop-block rounded-sm bg-wave px-3 py-1 font-display text-[11px] tracking-wider text-ink disabled:opacity-50"
+          className="pop-block rounded-sm bg-tint px-3 py-1 font-display text-[11px] tracking-wider text-ink disabled:opacity-50"
         >
           {pending ? "Adding…" : "Add"}
         </button>
@@ -387,7 +390,7 @@ function CopiesDrawer({
     setError(null);
     start(async () => {
       try {
-        await removeBinderEntry(entryId);
+        unwrapAction(await removeBinderEntry(entryId));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to remove");
       }
@@ -407,7 +410,7 @@ function CopiesDrawer({
           >
             {e.is_grail ? (
               <span
-                className="w-5 h-5 grid place-items-center rounded-full bg-sun border-2 border-ink font-display text-[10px] shrink-0"
+                className="w-5 h-5 grid place-items-center rounded-full bg-highlight border-2 border-ink font-display text-[10px] shrink-0"
                 title="Grail"
               >
                 ★
@@ -419,7 +422,7 @@ function CopiesDrawer({
                 : e.condition}
             </span>
             {e.quantity > 1 ? (
-              <span className="ml-auto font-display text-[10px] tabular-nums text-wave">
+              <span className="ml-auto font-display text-[10px] tabular-nums text-tint">
                 ×{e.quantity}
               </span>
             ) : null}

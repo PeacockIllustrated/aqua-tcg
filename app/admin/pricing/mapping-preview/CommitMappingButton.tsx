@@ -42,7 +42,7 @@ export function CommitMappingButton({
                 }`,
         });
       } else {
-        setResult({ ok: false, text: res.error });
+        setResult({ ok: Boolean(res.preview), text: res.preview ? "Preview — not saved" : res.error });
       }
     });
   };
@@ -53,11 +53,11 @@ export function CommitMappingButton({
         type="button"
         onClick={handleClick}
         disabled={disabled || pending || matchedCount === 0}
-        className="pop-block rounded-sm bg-wave px-3 py-1 font-display text-[11px] tracking-wider text-ink disabled:opacity-40 disabled:cursor-not-allowed"
+        className="pop-block rounded-sm bg-tint px-3 py-1 font-display text-[11px] tracking-wider text-ink disabled:opacity-40 disabled:cursor-not-allowed"
         title={
           matchedCount === 0
             ? "Nothing to commit"
-            : `Upsert ${matchedCount} rows into lewis_card_tcg_map`
+            : `Save ${matchedCount} matches for this set`
         }
       >
         {pending ? "Committing…" : "Commit →"}
@@ -66,7 +66,7 @@ export function CommitMappingButton({
         <span
           role="status"
           className={`font-display text-[10px] tracking-wider ${
-            result.ok ? "text-wave" : "text-warn"
+            result.ok ? "text-tint" : "text-warn"
           }`}
         >
           {result.text}

@@ -1,19 +1,22 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Annotation } from "@/components/wireframe/Annotation";
-import { Button } from "@/components/ui/Form";
+import { LinkButton } from "@/components/ui/Form";
 import { getDraftSubmission } from "@/app/_actions/submission";
 import { formatGBP } from "@/lib/mock/mock-offer";
-import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/preview-server";
+import { PreviewBanner } from "@/components/preview/PreviewBanner";
+import { PREVIEW_PROFILE } from "@/lib/mock/mock-customer";
 import { SubmitForm } from "./SubmitForm";
 import type { LewisUser } from "@/lib/supabase/types";
 
+export const metadata = { title: "Submit your sale" };
+
+export const dynamic = "force-dynamic";
+
 export default async function SubmissionSubmitPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const { supabase, user, preview } = await getViewer();
+  if (!preview && (!user || !supabase)) {
     redirect("/login?next=/submission/submit");
   }
 
@@ -22,7 +25,7 @@ export default async function SubmissionSubmitPage() {
     return (
       <div className="max-w-[720px] mx-auto px-4 py-12 flex flex-col gap-6">
         <header className="flex flex-col gap-2">
-          <span className="bg-sun text-ink border-2 border-ink w-fit px-2 py-1 font-display text-[10px] tracking-wider rounded-sm">
+          <span className="bg-highlight text-ink border-2 border-ink w-fit px-2 py-1 font-display text-[10px] tracking-wider rounded-sm">
             Almost done
           </span>
           <h1 className="font-display text-[32px] leading-none tracking-tight">
@@ -31,39 +34,49 @@ export default async function SubmissionSubmitPage() {
         </header>
         <div className="pop-card rounded-md p-8 text-center flex flex-col gap-3 items-center">
           <p className="text-[13px] text-secondary max-w-[42ch]">
-            Your submission is empty. Add at least one card before you
+            Your sale is empty. Add at least one card before you
             can submit.
           </p>
-          <Link href="/packs" className="inline-block mt-2">
-            <Button size="lg">Browse packs →</Button>
-          </Link>
+          <LinkButton href="/packs" size="lg" className="mt-2">Browse packs →</LinkButton>
         </div>
       </div>
     );
   }
 
-  const { data: profile } = await supabase
-    .from("lewis_users")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle<LewisUser>();
+  let profile: LewisUser | null = null;
+  if (preview) {
+    profile = PREVIEW_PROFILE;
+  } else if (supabase && user) {
+    const { data } = await supabase
+      .from("lewis_users")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle<LewisUser>();
+    profile = data;
+  }
 
   const totalCards = draft.items.reduce((s, i) => s + i.quantity, 0);
   const totalOffered = draft.submission.total_offered ?? 0;
 
   return (
+    <>
+    {preview ? <PreviewBanner next="/submission/submit" /> : null}
     <div className="max-w-[1200px] mx-auto px-4 py-8 flex flex-col gap-6">
       <header className="flex flex-col gap-2">
-        <span className="bg-sun text-ink border-2 border-ink w-fit px-2 py-1 font-display text-[10px] tracking-wider rounded-sm">
+        <span className="bg-highlight text-ink border-2 border-ink w-fit px-2 py-1 font-display text-[10px] tracking-wider rounded-sm">
           Almost done
         </span>
         <h1 className="font-display text-[32px] leading-none tracking-tight">
-          Confirm your submission
+          Confirm your sale
         </h1>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-[1fr_320px] gap-6 items-start">
-        <SubmitForm profile={profile ?? null} defaultEmail={user.email ?? ""} />
+        <SubmitForm
+          profile={profile}
+          defaultEmail={user?.email ?? profile?.email ?? ""}
+          preview={preview}
+        />
 
         <aside className="pop-block bg-paper-strong rounded-md p-5 flex flex-col gap-3 sticky top-[80px]">
           <Annotation>SUMMARY</Annotation>
@@ -85,12 +98,13 @@ export default async function SubmissionSubmitPage() {
           </div>
           <Link
             href="/submission"
-            className="text-[11px] font-display tracking-wider underline underline-offset-4 decoration-2 text-muted hover:text-ocean"
+            className="text-[11px] font-display tracking-wider underline underline-offset-4 decoration-2 text-muted hover:text-brand"
           >
-            ← back to your submission
+            ← back to your sale
           </Link>
         </aside>
       </div>
     </div>
+    </>
   );
 }

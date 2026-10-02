@@ -5,16 +5,18 @@ import { StatCard } from "@/components/admin/StatCard";
 import { listAdminDemand } from "@/app/_actions/admin";
 import { formatGBP } from "@/lib/mock/mock-offer";
 
+export const metadata = { title: "Demand" };
+
 /**
  * `/admin/demand` · Phase 6 · Slice B1.
  *
- * Aggregates every `lewis_wishlist_entries` row by card_id so Aqua TCG can
+ * Aggregates every `lewis_wishlist_entries` row by card_id so the shop can
  * see which cards have latent buyer demand. Cross-user visibility comes
  * from the `lewis_wishlist_entries: admin read` RLS policy shipped in
  * migration 0006. Middleware role-gates the `/admin/*` tree.
  *
- * The in-stock join still uses mock listings — swap for a real
- * `lewis_listings` read when shop persistence lands (Phase 7).
+ * The in-stock join reads active `lewis_listings` (sample listings in
+ * preview mode).
  */
 export default async function AdminDemandPage() {
   const rows = await listAdminDemand();
@@ -32,18 +34,18 @@ export default async function AdminDemandPage() {
           { label: "Demand" },
         ]}
         title="Wishlist demand"
-        kicker={{ label: "AGGREGATE", tone: "ocean" }}
+        kicker={{ label: "AGGREGATE", tone: "brand" }}
         subtitle="Every wishlist row across the user base, grouped by card. Prioritise sourcing, ping sellers, or spot in-stock cards with latent buyers."
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label="Unique cards" value={uniqueCards} />
         <StatCard label="Total wishes" value={totalWishes} />
-        <StatCard label="In stock + wished" value={actionable} tone="wave" />
+        <StatCard label="In stock + wished" value={actionable} tone="tint" />
         <StatCard
           label="Missed demand"
           value={uniqueCards - actionable}
-          tone="ocean"
+          tone="brand"
           sub="No stock to meet"
         />
       </div>
@@ -80,7 +82,7 @@ export default async function AdminDemandPage() {
                   <TD>
                     <Link
                       href={`/admin/demand/${r.card_id}`}
-                      className="flex flex-col gap-0.5 hover:text-ocean"
+                      className="flex flex-col gap-0.5 hover:text-brand"
                     >
                       <span className="font-display text-[12px] tracking-wider">
                         {r.card_name}
@@ -129,8 +131,9 @@ export default async function AdminDemandPage() {
       )}
 
       <p className="text-[10px] text-muted font-display tracking-wider">
-        In-stock counts currently read from mock listings. Real data lands
-        when shop persistence ships (Phase 7).
+        Convert = a wisher&rsquo;s target meets your lowest price · Surface =
+        in stock, worth a nudge · List it = buyers waiting, no stock · Watch =
+        early interest.
       </p>
     </div>
   );
@@ -139,7 +142,7 @@ export default async function AdminDemandPage() {
 /* ─────────────────────────────────────────────────────────────────
  * Signal classification
  *
- * Quick visual cue — what should Aqua TCG do about this row?
+ * Quick visual cue — what should the shop do about this row?
  *   • "Convert"  → in stock AND at least one target price meets lowest listed
  *   • "List it"  → no stock; target price exists, it's sourcing-worth
  *   • "Surface"  → in stock, no target prices; DM-worthy
@@ -151,7 +154,7 @@ function classifyDemand(row: {
   targets_set: number;
   max_target_gbp: number | null;
   lowest_listed_gbp: number | null;
-}): { label: string; tone: "wave" | "ocean" | "sun" | "muted" } {
+}): { label: string; tone: "tint" | "brand" | "highlight" | "muted" } {
   const hasStock = row.current_in_stock > 0;
   const hasTarget = row.targets_set > 0;
   const targetMet =
@@ -161,9 +164,9 @@ function classifyDemand(row: {
     row.lowest_listed_gbp !== null &&
     row.max_target_gbp >= row.lowest_listed_gbp;
 
-  if (targetMet) return { label: "Convert", tone: "wave" };
-  if (hasStock) return { label: "Surface", tone: "sun" };
-  if (hasTarget) return { label: "List it", tone: "ocean" };
+  if (targetMet) return { label: "Convert", tone: "tint" };
+  if (hasStock) return { label: "Surface", tone: "highlight" };
+  if (hasTarget) return { label: "List it", tone: "brand" };
   return { label: "Watch", tone: "muted" };
 }
 
@@ -172,15 +175,15 @@ function SignalBadge({
   tone,
 }: {
   children: React.ReactNode;
-  tone: "wave" | "ocean" | "sun" | "muted";
+  tone: "tint" | "brand" | "highlight" | "muted";
 }) {
   const bg =
-    tone === "wave"
-      ? "bg-wave"
-      : tone === "ocean"
-        ? "bg-ocean"
-        : tone === "sun"
-          ? "bg-sun"
+    tone === "tint"
+      ? "bg-tint"
+      : tone === "brand"
+        ? "bg-brand"
+        : tone === "highlight"
+          ? "bg-highlight"
           : "bg-paper";
   const textColor = tone === "muted" ? "text-muted" : "text-ink";
   return (

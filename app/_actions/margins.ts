@@ -3,7 +3,10 @@
 import { cache } from "react";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { hasDatabase } from "@/lib/preview";
+import { getAdminViewer, PREVIEW_SAVE_MESSAGE } from "@/app/_actions/admin";
 import { MOCK_MARGIN_CONFIG } from "@/lib/mock/mock-margin-config";
+import { sampleMarginRow } from "@/lib/mock/admin-sample";
 import type { MockMarginConfig } from "@/lib/mock/types";
 import type { LewisAdminMargins } from "@/lib/supabase/types";
 
@@ -52,6 +55,7 @@ function rowToMockShape(row: LewisAdminMargins): MockMarginConfig {
  * (e.g. before migration 0003 has been applied).
  */
 const fetchLiveConfig = cache(async (): Promise<MockMarginConfig> => {
+  if (!hasDatabase) return MOCK_MARGIN_CONFIG;
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -73,11 +77,23 @@ export async function getMarginConfig(): Promise<MockMarginConfig> {
 }
 
 /**
+ * Config for the admin pricing page: the live config for an admin, or
+ * the sample config (with real set names) in preview.
+ */
+export async function getAdminMarginConfig(): Promise<MockMarginConfig> {
+  const viewer = await getAdminViewer();
+  if (viewer.preview) return rowToMockShape(sampleMarginRow());
+  return fetchLiveConfig();
+}
+
+/**
  * Convenience: also expose the raw DB row (with extras like
  * `created_at` + `change_note`) for the admin pricing page.
  */
 export async function getLiveMarginRow(): Promise<LewisAdminMargins | null> {
-  const supabase = await createClient();
+  const viewer = await getAdminViewer();
+  if (viewer.preview) return sampleMarginRow();
+  const supabase = viewer.supabase;
   const { data } = await supabase
     .from("lewis_admin_margins")
     .select("*")
@@ -117,11 +133,11 @@ export type MarginConfigInput = {
 export async function updateMarginConfig(input: MarginConfigInput): Promise<{
   ok: boolean;
   error?: string;
+  preview?: boolean;
 }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const viewer = await getAdminViewer();
+  if (viewer.preview) return { ok: false, error: PREVIEW_SAVE_MESSAGE, preview: true };
+  const { supabase, user } = viewer;
   if (!user) return { ok: false, error: "Not signed in" };
 
   // Find the current live row id (we update in place so the history

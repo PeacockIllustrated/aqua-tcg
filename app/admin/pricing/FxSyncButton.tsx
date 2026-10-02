@@ -26,7 +26,7 @@ export function FxSyncButton({
     start(async () => {
       const res = await triggerFxSync();
       if (!res.ok) {
-        setResult({ ok: false, text: res.error });
+        setResult({ ok: Boolean(res.preview), text: res.error });
         return;
       }
       if (res.status === "skipped") {
@@ -76,9 +76,7 @@ export function FxSyncButton({
         {result ? (
           <span
             role="status"
-            className={`font-display text-[10px] tracking-wider ${
-              result.ok ? "text-wave" : "text-warn"
-            }`}
+            className={`text-[12px] ${result.ok ? "text-secondary" : "text-warn"}`}
           >
             {result.text}
           </span>
@@ -87,7 +85,7 @@ export function FxSyncButton({
           type="button"
           onClick={handleClick}
           disabled={pending}
-          className="pop-block rounded-sm bg-sun px-3 py-1.5 font-display text-[11px] tracking-wider text-ink disabled:opacity-50"
+          className="pop-block rounded-sm bg-highlight px-3 py-1.5 font-display text-[11px] tracking-wider text-ink disabled:opacity-50"
           title="Fetch current USD rates from open.er-api.com"
         >
           {pending ? "Fetching…" : "Run FX sync"}

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/Form";
+import { Button, LinkButton } from "@/components/ui/Form";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/Table";
 import {
   removeFromCart,
@@ -74,9 +74,7 @@ export function CartView() {
     return (
       <div className="pop-card rounded-md p-12 text-center flex flex-col gap-4 items-center">
         <span className="font-display text-[24px]">Your basket is empty</span>
-        <Link href="/shop">
-          <Button>Browse the shop</Button>
-        </Link>
+        <LinkButton href="/shop">Browse the shop</LinkButton>
       </div>
     );
   }
@@ -93,9 +91,7 @@ export function CartView() {
     return (
       <div className="pop-card rounded-md p-12 text-center flex flex-col gap-4 items-center">
         <span className="font-display text-[24px]">Your basket is empty</span>
-        <Link href="/shop">
-          <Button>Browse the shop</Button>
-        </Link>
+        <LinkButton href="/shop">Browse the shop</LinkButton>
       </div>
     );
   }
@@ -151,7 +147,7 @@ export function CartView() {
                     <div className="flex flex-col gap-0.5 min-w-0">
                       <Link
                         href={`/shop/${r.listing.id}`}
-                        className="font-display text-[13px] tracking-tight hover:text-ocean leading-tight"
+                        className="font-display text-[13px] tracking-tight hover:text-brand leading-tight"
                       >
                         {r.listing.card_name}
                       </Link>
@@ -231,7 +227,7 @@ export function CartView() {
       <section className="grid grid-cols-1 md:grid-cols-[1fr_340px] gap-6 items-start">
         <div
           className={`pop-card rounded-md p-4 flex flex-col gap-2 text-[13px] ${
-            subtotal >= 250 ? "bg-wave/30" : "bg-sun/30"
+            subtotal >= 250 ? "bg-tint/30" : "bg-highlight/30"
           }`}
         >
           <span className="font-display text-[11px] tracking-wider">
@@ -275,11 +271,15 @@ export function CartView() {
               Reduce any over-stock lines before checking out.
             </p>
           ) : null}
-          <Link href="/shop/checkout">
-            <Button size="lg" className="w-full" disabled={anyOver}>
+          {anyOver ? (
+            <Button size="lg" disabled className="w-full">
               Continue to checkout →
             </Button>
-          </Link>
+          ) : (
+            <LinkButton href="/shop/checkout" size="lg" className="w-full">
+              Continue to checkout →
+            </LinkButton>
+          )}
         </div>
       </section>
     </>

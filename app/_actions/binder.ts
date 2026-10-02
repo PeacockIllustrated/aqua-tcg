@@ -2,8 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/preview-server";
 import { getCardsBySet, getSetById } from "@/lib/fixtures/cards";
+import {
+  MOCK_BINDER_ENTRIES,
+  MOCK_WISHLIST_ENTRIES,
+} from "@/lib/mock/mock-customer";
+import { previewError, type PreviewError } from "@/lib/mock/preview-actions";
 import { summarisePacks } from "@/lib/binder/packs";
 import type {
   BinderPackSummary,
@@ -32,16 +37,17 @@ import type {
  *     ownership on delete/update paths to surface clean errors.
  *   • revalidatePath('/binder') on every mutation. Card-detail
  *     mutations also revalidate the originating card page.
+ *   • Preview (signed out with preview mode on, or no DB): reads
+ *     return the sample collection from `lib/mock/mock-customer`;
+ *     writes return a `PreviewError` and touch nothing.
  * ───────────────────────────────────────────────────────────────── */
 
 /* ─── reads ─────────────────────────────────────────────────────── */
 
 export async function getMyBinderEntries(): Promise<LewisBinderEntry[]> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return [];
+  const { supabase, user, preview } = await getViewer();
+  if (preview) return MOCK_BINDER_ENTRIES;
+  if (!user || !supabase) return [];
 
   const { data, error } = await supabase
     .from("lewis_binder_entries")
@@ -53,11 +59,9 @@ export async function getMyBinderEntries(): Promise<LewisBinderEntry[]> {
 }
 
 export async function getMyWishlistEntries(): Promise<LewisWishlistEntry[]> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return [];
+  const { supabase, user, preview } = await getViewer();
+  if (preview) return MOCK_WISHLIST_ENTRIES;
+  if (!user || !supabase) return [];
 
   const { data, error } = await supabase
     .from("lewis_wishlist_entries")
@@ -74,11 +78,17 @@ export async function getCardBinderStatus(cardId: string): Promise<{
   onWishlist: boolean;
   wishlistTarget: number | null;
 }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { entries: [], onWishlist: false, wishlistTarget: null };
+  const { supabase, user, preview } = await getViewer();
+  if (preview) {
+    const wish = MOCK_WISHLIST_ENTRIES.find((w) => w.card_id === cardId);
+    return {
+      entries: MOCK_BINDER_ENTRIES.filter((e) => e.card_id === cardId),
+      onWishlist: wish !== undefined,
+      wishlistTarget: wish?.target_price_gbp ?? null,
+    };
+  }
+  if (!user || !supabase)
+    return { entries: [], onWishlist: false, wishlistTarget: null };
 
   const [binderRes, wishlistRes] = await Promise.all([
     supabase
@@ -123,11 +133,9 @@ export type {
  * card from. Sorted newest-first by release date.
  */
 export async function getMyPackSummaries(): Promise<BinderPackSummary[]> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return [];
+  const { supabase, user, preview } = await getViewer();
+  if (preview) return summarisePacks(MOCK_BINDER_ENTRIES);
+  if (!user || !supabase) return [];
 
   const { data, error } = await supabase
     .from("lewis_binder_entries")
@@ -146,27 +154,30 @@ export async function getMyPackSummaries(): Promise<BinderPackSummary[]> {
 export async function getPackCardsForUser(
   setId: string,
 ): Promise<PackDetailPayload> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/binder");
+  const { supabase, user, preview } = await getViewer();
 
   const set = getSetById(setId);
   if (!set) throw new Error(`Unknown pack: ${setId}`);
 
-  const { data: entries, error } = await supabase
-    .from("lewis_binder_entries")
-    .select("card_id, quantity, variant")
-    .eq("user_id", user.id);
-  if (error)
-    throw new Error(`Failed to load entries for pack: ${error.message}`);
+  let entries: Pick<LewisBinderEntry, "card_id" | "quantity" | "variant">[];
+  if (preview) {
+    entries = MOCK_BINDER_ENTRIES;
+  } else {
+    if (!user || !supabase) redirect("/login?next=/binder");
+    const { data, error } = await supabase
+      .from("lewis_binder_entries")
+      .select("card_id, quantity, variant")
+      .eq("user_id", user.id);
+    if (error)
+      throw new Error(`Failed to load entries for pack: ${error.message}`);
+    entries = data ?? [];
+  }
 
   const ownedByCard = new Map<
     string,
     { quantity: number; variants: Set<ItemVariant> }
   >();
-  for (const e of entries ?? []) {
+  for (const e of entries) {
     const slot = ownedByCard.get(e.card_id) ?? {
       quantity: 0,
       variants: new Set<ItemVariant>(),
@@ -231,12 +242,10 @@ export type AddBinderEntryInput = {
  */
 export async function addBinderEntry(
   input: AddBinderEntryInput,
-): Promise<{ entryId: string; created: boolean }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect(`/login?next=/card/${input.cardId}`);
+): Promise<{ entryId: string; created: boolean } | PreviewError> {
+  const { supabase, user, preview } = await getViewer();
+  if (preview) return previewError();
+  if (!user || !supabase) redirect(`/login?next=/card/${input.cardId}`);
 
   const qty = Math.max(1, Math.floor(input.quantity ?? 1));
 
@@ -314,12 +323,12 @@ export async function addBinderEntry(
   return { entryId: created.id, created: true };
 }
 
-export async function removeBinderEntry(entryId: string): Promise<void> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/binder");
+export async function removeBinderEntry(
+  entryId: string,
+): Promise<void | PreviewError> {
+  const { supabase, user, preview } = await getViewer();
+  if (preview) return previewError();
+  if (!user || !supabase) redirect("/login?next=/binder");
 
   // RLS would reject a cross-user delete anyway, but this surfaces the
   // 404 case explicitly rather than pretending success on 0 rows.
@@ -352,12 +361,10 @@ export type UpdateBinderEntryInput = {
 export async function updateBinderEntry(
   entryId: string,
   patch: UpdateBinderEntryInput,
-): Promise<void> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/binder");
+): Promise<void | PreviewError> {
+  const { supabase, user, preview } = await getViewer();
+  if (preview) return previewError();
+  if (!user || !supabase) redirect("/login?next=/binder");
 
   const { data: existing, error: lookupErr } = await supabase
     .from("lewis_binder_entries")
@@ -417,12 +424,10 @@ export async function updateBinderEntry(
 export async function setGrail(
   entryId: string,
   makeGrail: boolean,
-): Promise<void> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/binder");
+): Promise<void | PreviewError> {
+  const { supabase, user, preview } = await getViewer();
+  if (preview) return previewError();
+  if (!user || !supabase) redirect("/login?next=/binder");
 
   const { data: existing, error: lookupErr } = await supabase
     .from("lewis_binder_entries")
@@ -458,12 +463,10 @@ export async function setGrail(
 
 export async function toggleWishlist(
   cardId: string,
-): Promise<{ onWishlist: boolean }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect(`/login?next=/card/${cardId}`);
+): Promise<{ onWishlist: boolean } | PreviewError> {
+  const { supabase, user, preview } = await getViewer();
+  if (preview) return previewError();
+  if (!user || !supabase) redirect(`/login?next=/card/${cardId}`);
 
   const { data: existing, error: lookupErr } = await supabase
     .from("lewis_wishlist_entries")
@@ -503,12 +506,10 @@ export async function toggleWishlist(
 export async function setWishlistTarget(
   cardId: string,
   targetGbp: number | null,
-): Promise<void> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect(`/login?next=/card/${cardId}`);
+): Promise<void | PreviewError> {
+  const { supabase, user, preview } = await getViewer();
+  if (preview) return previewError();
+  if (!user || !supabase) redirect(`/login?next=/card/${cardId}`);
 
   if (targetGbp !== null && (isNaN(targetGbp) || targetGbp < 0)) {
     throw new Error("Target price must be a non-negative number or null.");

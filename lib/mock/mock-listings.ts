@@ -2,7 +2,7 @@ import { MOCK_CARDS } from "@/lib/fixtures/mock-adapter";
 import type { MockListing } from "./types";
 
 /**
- * Listings = individual physical inventory units Lewis has for sale.
+ * Listings = individual physical inventory units the shop has for sale.
  * Each row references a card from the real first-gen catalogue
  * (base1-* through basep-*) and represents one specific copy at one
  * condition + price.

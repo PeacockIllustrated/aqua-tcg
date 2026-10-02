@@ -1,39 +1,40 @@
-import Link from "next/link";
 import { Annotation } from "@/components/wireframe/Annotation";
-import { Button } from "@/components/ui/Form";
+import { LinkButton } from "@/components/ui/Form";
 import { Table, THead, TBody, TR, TH } from "@/components/ui/Table";
 import { getDraftSubmission } from "@/app/_actions/submission";
 import { getCardById, setOf } from "@/lib/fixtures/cards";
 import { formatGBP } from "@/lib/mock/mock-offer";
-import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/preview-server";
+import { PreviewBanner } from "@/components/preview/PreviewBanner";
 import { SubmissionItemRow } from "./SubmissionItemRow";
 
-export default async function SubmissionPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export const metadata = { title: "Your sale" };
 
-  if (!user) {
+export const dynamic = "force-dynamic";
+
+export default async function SubmissionPage() {
+  const { user, preview } = await getViewer();
+
+  // Preview renders the sample draft below; only a real signed-out
+  // visitor (preview mode off) gets the sign-in prompt.
+  if (!user && !preview) {
     return (
       <div className="max-w-[720px] mx-auto px-4 py-12 flex flex-col gap-6">
         <header className="flex flex-col gap-2">
-          <span className="bg-sun text-ink border-2 border-ink w-fit px-2 py-1 font-display text-[10px] tracking-wider rounded-sm">
+          <span className="bg-highlight text-ink border-2 border-ink w-fit px-2 py-1 font-display text-[10px] tracking-wider rounded-sm">
             Selling to us
           </span>
           <h1 className="font-display text-[36px] leading-none tracking-tight">
-            Your submission
+            Your sale
           </h1>
         </header>
         <div className="pop-card rounded-md p-8 text-center flex flex-col gap-3 items-center">
-          <span className="font-display text-[22px]">Sign in to build your submission</span>
+          <span className="font-display text-[22px]">Sign in to build your sale</span>
           <p className="text-[13px] text-secondary max-w-[42ch]">
             We save your draft to your account so you can add cards from
             any device and come back to it later.
           </p>
-          <Link href="/login?next=/submission" className="inline-block mt-2">
-            <Button size="lg">Sign in →</Button>
-          </Link>
+          <LinkButton href="/login?next=/submission" size="lg" className="mt-2">Sign in →</LinkButton>
         </div>
       </div>
     );
@@ -45,13 +46,15 @@ export default async function SubmissionPage() {
   const totalOffered = draft?.submission.total_offered ?? 0;
 
   return (
+    <>
+    {preview ? <PreviewBanner next="/submission" /> : null}
     <div className="max-w-[1200px] mx-auto px-4 py-8 flex flex-col gap-6">
       <header className="flex flex-col gap-2">
-        <span className="bg-sun text-ink border-2 border-ink w-fit px-2 py-1 font-display text-[10px] tracking-wider rounded-sm">
+        <span className="bg-highlight text-ink border-2 border-ink w-fit px-2 py-1 font-display text-[10px] tracking-wider rounded-sm">
           Selling to us
         </span>
         <h1 className="font-display text-[36px] leading-none tracking-tight">
-          Your submission
+          Your sale
         </h1>
         {draft ? (
           <p className="text-[12px] text-muted font-display tracking-wider tabular-nums">
@@ -63,27 +66,29 @@ export default async function SubmissionPage() {
       {items.length === 0 ? (
         <div className="pop-card rounded-md p-10 text-center flex flex-col gap-3 items-center">
           <span className="font-display text-[22px]">
-            Your submission is empty
+            Your sale is empty
           </span>
           <p className="text-[13px] text-secondary max-w-[42ch]">
             Pick a pack and tap the cards you want to sell. We&apos;ll
             quote every card in GBP on the spot.
           </p>
-          <Link href="/packs" className="inline-block mt-2">
-            <Button size="lg">Browse packs →</Button>
-          </Link>
+          <LinkButton href="/packs" size="lg" className="mt-2 w-fit self-center">
+            Browse packs →
+          </LinkButton>
         </div>
       ) : (
         <>
-          <Table>
+          <Table scrollHint={false}>
             <THead>
               <TR>
                 <TH>Card</TH>
-                <TH>Variant</TH>
+                <TH className="hidden sm:table-cell">Variant</TH>
                 <TH>Qty</TH>
-                <TH className="text-right">Per</TH>
-                <TH className="text-right">Line total</TH>
-                <TH></TH>
+                <TH className="hidden md:table-cell text-right">Per</TH>
+                <TH className="text-right">Total</TH>
+                <TH className="hidden sm:table-cell">
+                  <span className="sr-only">Remove</span>
+                </TH>
               </TR>
             </THead>
             <TBody>
@@ -131,15 +136,12 @@ export default async function SubmissionPage() {
                   {formatGBP(Number(totalOffered))}
                 </span>
               </div>
-              <Link href="/submission/submit" className="block">
-                <Button size="lg" className="w-full">
-                  Continue to submit →
-                </Button>
-              </Link>
+              <LinkButton href="/submission/submit" size="lg" className="w-full">Continue to submit →</LinkButton>
             </div>
           </section>
         </>
       )}
     </div>
+    </>
   );
 }

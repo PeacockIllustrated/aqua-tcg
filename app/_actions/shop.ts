@@ -2,8 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { getCardById } from "@/lib/fixtures/cards";
+import { hasDatabase } from "@/lib/preview";
+import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/preview-server";
+import {
+  SAMPLE_ORDER_REFERENCE,
+  getMockLewisListing,
+  getMockLewisListings,
+  getSampleOrder,
+} from "@/lib/mock/mock-shop";
 import type {
   LewisListing,
   LewisOrder,
@@ -19,6 +27,12 @@ import type {
  * `lewis_orders: buyer read own`). Writes go exclusively through the
  * `lewis_create_order` SQL RPC which is the only place stock
  * reservation happens atomically.
+ *
+ * Preview / no-DB: listings fall back to `lib/mock/mock-shop` when
+ * Supabase isn't configured or the query fails. Orders render a
+ * sample for signed-out visitors, and `createOrder` hands back the
+ * sample reference instead of writing, so checkout can be walked end
+ * to end without an account.
  * ───────────────────────────────────────────────────────────────── */
 
 const SHIPPING_COSTS: Record<ShippingMethodOption, number> = {
@@ -28,24 +42,44 @@ const SHIPPING_COSTS: Record<ShippingMethodOption, number> = {
 
 /* ─── reads ─────────────────────────────────────────────────────── */
 
+/** Anonymous client for public reads (listings). Null when Supabase
+ *  isn't configured — callers fall back to the mock catalogue. Skips
+ *  the auth round-trip `getViewer()` would make. */
+async function publicClient() {
+  return hasDatabase ? createClient() : null;
+}
+
 export async function listListings(opts?: {
   featured?: boolean;
   inStockOnly?: boolean;
 }): Promise<LewisListing[]> {
-  const supabase = await createClient();
-  let q = supabase.from("lewis_listings").select("*").eq("status", "active");
-  if (opts?.featured) q = q.eq("is_featured", true);
-  q = q.order("is_featured", { ascending: false }).order(
-    "featured_priority",
-    { ascending: true, nullsFirst: false },
-  );
-  const { data, error } = await q;
-  if (error) throw new Error(`Failed to load listings: ${error.message}`);
-  const rows = (data ?? []) as LewisListing[];
+  const supabase = await publicClient();
+  let rows: LewisListing[] | null = null;
+  if (supabase) {
+    let q = supabase.from("lewis_listings").select("*").eq("status", "active");
+    if (opts?.featured) q = q.eq("is_featured", true);
+    q = q.order("is_featured", { ascending: false }).order(
+      "featured_priority",
+      { ascending: true, nullsFirst: false },
+    );
+    const { data, error } = await q;
+    if (!error) rows = (data ?? []) as LewisListing[];
+  }
+  if (rows === null) rows = mockActiveListings(opts?.featured);
   if (opts?.inStockOnly) {
     return rows.filter((l) => l.qty_in_stock - l.qty_reserved > 0);
   }
   return rows;
+}
+
+function mockActiveListings(featuredOnly?: boolean): LewisListing[] {
+  return getMockLewisListings()
+    .filter((l) => l.status === "active")
+    .filter((l) => !featuredOnly || l.is_featured)
+    .sort((a, b) => {
+      if (a.is_featured !== b.is_featured) return a.is_featured ? -1 : 1;
+      return (a.featured_priority ?? 99) - (b.featured_priority ?? 99);
+    });
 }
 
 export type EnrichedListing = LewisListing & {
@@ -68,32 +102,36 @@ export async function getListingsByIds(
   ids: string[],
 ): Promise<EnrichedListing[]> {
   if (ids.length === 0) return [];
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("lewis_listings")
-    .select("*")
-    .in("id", ids);
-  if (error) throw new Error(`Failed to load listings: ${error.message}`);
-  return ((data ?? []) as LewisListing[]).map(enrich);
+  const supabase = await publicClient();
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("lewis_listings")
+      .select("*")
+      .in("id", ids);
+    if (!error) return ((data ?? []) as LewisListing[]).map(enrich);
+  }
+  return getMockLewisListings()
+    .filter((l) => ids.includes(l.id))
+    .map(enrich);
 }
 
 export async function getListing(id: string): Promise<LewisListing | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("lewis_listings")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-  if (error) throw new Error(`Failed to load listing: ${error.message}`);
-  return (data as LewisListing | null) ?? null;
+  const supabase = await publicClient();
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("lewis_listings")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (!error) return (data as LewisListing | null) ?? null;
+  }
+  return getMockLewisListing(id);
 }
 
 export async function getMyOrders(): Promise<LewisOrder[]> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return [];
+  const { supabase, user, preview } = await getViewer();
+  if (preview) return [getSampleOrder(SAMPLE_ORDER_REFERENCE).order];
+  if (!supabase || !user) return [];
 
   const { data, error } = await supabase
     .from("lewis_orders")
@@ -111,7 +149,11 @@ export async function getOrderByReference(reference: string): Promise<
     }
   | null
 > {
-  const supabase = await createClient();
+  // Signed-out visitors (or no DB) get a sample receipt for any ref —
+  // RLS would hide a real order from them anyway.
+  const { supabase, preview } = await getViewer();
+  if (preview || !supabase) return getSampleOrder(reference);
+
   const { data: order, error } = await supabase
     .from("lewis_orders")
     .select("*")
@@ -159,11 +201,7 @@ export type CreateOrderResult = {
 export async function createOrder(
   input: CreateOrderInput,
 ): Promise<CreateOrderResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/shop/checkout");
+  const { supabase, user, preview } = await getViewer();
 
   if (input.cart.length === 0) throw new Error("Cart is empty.");
   for (const line of input.cart) {
@@ -171,6 +209,13 @@ export async function createOrder(
       throw new Error("Invalid cart line.");
     }
   }
+
+  // Preview: nothing is written or reserved — hand back the sample
+  // reference so the checkout lands on the sample receipt.
+  if (preview) {
+    return { orderId: "preview-order", reference: SAMPLE_ORDER_REFERENCE };
+  }
+  if (!user || !supabase) redirect("/login?next=/shop/checkout");
 
   const shipping = SHIPPING_COSTS[input.shippingMethod];
 
@@ -215,7 +260,7 @@ export async function createOrder(
   // Backfill the card/set name snapshots the RPC couldn't compute
   // (the fixture lives in JS, not in Postgres). This lets receipts
   // render nicely without every query re-joining the fixture.
-  await backfillItemNames(result.id);
+  await backfillItemNames(supabase, result.id);
 
   revalidatePath("/shop");
   revalidatePath("/shop/cart");
@@ -224,8 +269,10 @@ export async function createOrder(
   return { orderId: result.id, reference: result.reference };
 }
 
-async function backfillItemNames(orderId: string): Promise<void> {
-  const supabase = await createClient();
+async function backfillItemNames(
+  supabase: NonNullable<Awaited<ReturnType<typeof getViewer>>["supabase"]>,
+  orderId: string,
+): Promise<void> {
   const { data: items } = await supabase
     .from("lewis_order_items")
     .select("id, card_id")

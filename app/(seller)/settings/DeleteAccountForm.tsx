@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { deleteMyAccount } from "@/app/_actions/consent";
+import { unwrapAction } from "@/lib/mock/preview-actions";
 
 /**
  * Two-step delete confirmation. The user must type the exact phrase
@@ -22,7 +23,7 @@ export function DeleteAccountForm() {
     setError(null);
     start(async () => {
       try {
-        await deleteMyAccount(value);
+        unwrapAction(await deleteMyAccount(value));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Deletion failed.");
       }

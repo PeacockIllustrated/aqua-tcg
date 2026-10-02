@@ -32,9 +32,8 @@ export function TriggerSyncButton() {
             : "Run sync now →"}
         </Button>
         <span className="text-[11px] text-muted font-display tracking-wider">
-          Hits TCGCSV for all 215 sets · upserts{" "}
-          <code className="font-mono">lewis_cards</code> +{" "}
-          <code className="font-mono">lewis_card_prices</code>.
+          Pulls the latest TCGplayer market prices for every set in the
+          catalogue.
         </span>
       </div>
 
@@ -42,9 +41,9 @@ export function TriggerSyncButton() {
         <div
           className={`pop-card rounded-md p-4 flex flex-col gap-1 text-[12px] ${
             result.status === "success"
-              ? "bg-wave/20"
+              ? "bg-tint/20"
               : result.status === "partial"
-                ? "bg-sun/20"
+                ? "bg-highlight/20"
                 : "bg-warn/10"
           }`}
         >
@@ -59,7 +58,14 @@ export function TriggerSyncButton() {
       ) : null}
 
       {result && !result.ok ? (
-        <div className="bg-warn/10 border-2 border-warn text-warn rounded-md px-3 py-2 text-[12px]">
+        <div
+          role={result.preview ? "status" : "alert"}
+          className={`border-2 rounded-md px-3 py-2 text-[12px] ${
+            result.preview
+              ? "bg-highlight/30 border-ink text-ink"
+              : "bg-warn/10 border-warn text-warn"
+          }`}
+        >
           {result.error}
         </div>
       ) : null}

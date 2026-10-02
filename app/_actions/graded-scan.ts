@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/preview-server";
+import { previewError, type PreviewError } from "@/lib/mock/preview-actions";
 import type { GradingCompany, Grade } from "@/lib/supabase/types";
 
 /* ─────────────────────────────────────────────────────────────────
@@ -17,10 +18,13 @@ import type { GradingCompany, Grade } from "@/lib/supabase/types";
  * rule; the path we construct here has to match or the insert fails.
  * ───────────────────────────────────────────────────────────────── */
 
-export async function uploadGradedScan(formData: FormData): Promise<{
-  entryId: string;
-  imagePath: string;
-}> {
+export async function uploadGradedScan(formData: FormData): Promise<
+  | {
+      entryId: string;
+      imagePath: string;
+    }
+  | PreviewError
+> {
   const file = formData.get("file");
   const cardId = String(formData.get("cardId") ?? "");
   const gradingCompany = String(
@@ -43,11 +47,10 @@ export async function uploadGradedScan(formData: FormData): Promise<{
     throw new Error("Scan must be 5 MB or smaller.");
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect(`/login?next=/card/${cardId}`);
+  // Preview: nothing is uploaded or written.
+  const { supabase, user, preview } = await getViewer();
+  if (preview) return previewError();
+  if (!user || !supabase) redirect(`/login?next=/card/${cardId}`);
 
   // Path shape must start with the user's uid — that's what the RLS
   // policies in 0009 check via `storage.foldername(name)[1]`.

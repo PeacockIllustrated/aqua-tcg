@@ -10,7 +10,7 @@ import { formatGBP } from "@/lib/mock/mock-offer";
  *
  * Drill into a single wishlisted card — who wants it, at what price,
  * and what we currently have in stock that could satisfy each target.
- * Aqua TCG can then message the top bidder directly, or list new stock.
+ * The shop can then message the top bidder directly, or list new stock.
  */
 export const dynamic = "force-dynamic";
 
@@ -36,13 +36,13 @@ export default async function DemandDrilldownPage({
   return (
     <div className="px-4 py-6 max-w-[1100px] mx-auto flex flex-col gap-6">
       <nav className="text-[12px] font-display tracking-wider text-muted">
-        <Link href="/admin/demand" className="hover:text-ocean">
+        <Link href="/admin/demand" className="hover:text-brand">
           ← Demand
         </Link>
       </nav>
 
       <header className="flex flex-col gap-1">
-        <Annotation>ADMIN · DEMAND · CARD</Annotation>
+        <Annotation>WISHLIST DEMAND</Annotation>
         <h1 className="font-display text-[26px] tracking-tight uppercase">
           {data.card_name}
         </h1>
@@ -51,14 +51,14 @@ export default async function DemandDrilldownPage({
           {data.dex_number ? ` · #${data.dex_number}` : ""} ·{" "}
           <Link
             href={`/card/${data.card_id}`}
-            className="underline decoration-2 underline-offset-2 hover:text-ocean"
+            className="underline decoration-2 underline-offset-2 hover:text-brand"
           >
             view card page
           </Link>{" "}
           ·{" "}
           <Link
             href={`/admin/sourcing?card=${data.card_id}`}
-            className="underline decoration-2 underline-offset-2 hover:text-ocean"
+            className="underline decoration-2 underline-offset-2 hover:text-brand"
           >
             who owns it →
           </Link>
@@ -141,7 +141,7 @@ export default async function DemandDrilldownPage({
                     </TD>
                     <TD>
                       {match ? (
-                        <span className="border-2 border-ink rounded-sm px-1.5 py-0.5 font-display text-[10px] tracking-wider bg-wave">
+                        <span className="border-2 border-ink rounded-sm px-1.5 py-0.5 font-display text-[10px] tracking-wider bg-tint">
                           MATCH · {formatGBP(match.price_gbp)}
                         </span>
                       ) : w.target_price_gbp === null ? (
@@ -149,7 +149,7 @@ export default async function DemandDrilldownPage({
                           —
                         </span>
                       ) : (
-                        <span className="border-2 border-ink rounded-sm px-1.5 py-0.5 font-display text-[10px] tracking-wider bg-ocean">
+                        <span className="border-2 border-ink rounded-sm px-1.5 py-0.5 font-display text-[10px] tracking-wider bg-brand">
                           Over target
                         </span>
                       )}
@@ -168,8 +168,8 @@ export default async function DemandDrilldownPage({
       </section>
 
       <p className="text-[10px] text-muted font-display tracking-wider">
-        Automated email dispatch arrives with Phase 8 — for now, reach
-        out manually and mark any deals done.
+        Tip: message the top bidder first — a matched target is the easiest
+        sale you&rsquo;ll make all week.
       </p>
     </div>
   );

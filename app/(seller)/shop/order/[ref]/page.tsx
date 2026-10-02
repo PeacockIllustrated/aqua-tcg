@@ -1,9 +1,17 @@
+import { brand } from "@/lib/brand";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/Table";
 import { getOrderByReference } from "@/app/_actions/shop";
 import { formatGBP } from "@/lib/mock/mock-offer";
+import { getViewer } from "@/lib/preview-server";
+import { PreviewBanner } from "@/components/preview/PreviewBanner";
 import { PaymentsComingSoonModal } from "./PaymentsComingSoonModal";
+
+export async function generateMetadata({ params }: { params: Params }) {
+  const { ref } = await params;
+  return { title: `Order ${ref}` };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +38,11 @@ export default async function OrderConfirmationPage({
   const { ref } = await params;
   const sp = await searchParams;
 
-  const result = await getOrderByReference(ref);
+  // Preview: getOrderByReference returns a sample receipt for any ref.
+  const [{ preview }, result] = await Promise.all([
+    getViewer(),
+    getOrderByReference(ref),
+  ]);
   if (!result) notFound();
   const { order, items } = result;
 
@@ -41,11 +53,14 @@ export default async function OrderConfirmationPage({
     order.payment_method === "stub";
 
   return (
+    <>
+    {preview ? <PreviewBanner next={`/shop/order/${ref}`} /> : null}
     <div className="max-w-[900px] mx-auto px-4 py-10 flex flex-col gap-8">
       {showStubPaymentModal ? (
         <PaymentsComingSoonModal
           reference={order.reference}
           buyerEmail={order.buyer_email}
+          preview={preview}
         />
       ) : null}
 
@@ -54,8 +69,8 @@ export default async function OrderConfirmationPage({
           order.status === "cancelled"
             ? "bg-warn/20"
             : order.status === "delivered"
-              ? "bg-wave"
-              : "bg-sun"
+              ? "bg-tint"
+              : "bg-highlight"
         }`}
       >
         <span className="bg-ink text-paper-strong w-fit px-2 py-1 font-display text-[10px] tracking-wider">
@@ -171,14 +186,14 @@ export default async function OrderConfirmationPage({
           </div>
         </div>
 
-        <div className="pop-card bg-ocean/15 rounded-md p-4 flex flex-col gap-3">
+        <div className="pop-card bg-brand/15 rounded-md p-4 flex flex-col gap-3">
           <span className="font-display text-[11px] tracking-wider">
             What happens next
           </span>
           <ol className="flex flex-col gap-2 text-[13px] list-decimal pl-5">
-            <li>Aqua TCG reviews your order.</li>
+            <li>We review your order.</li>
             <li>We confirm payment (Stripe coming soon — manual for now).</li>
-            <li>Aqua TCG pulls and packs your cards (sleeved + toploadered).</li>
+            <li>We pull and pack your cards (sleeved + toploadered).</li>
             <li>We dispatch and email a tracking number.</li>
             <li>
               Royal Mail delivers — usually within 2 working days after
@@ -186,7 +201,7 @@ export default async function OrderConfirmationPage({
             </li>
           </ol>
           {order.add_to_binder_opt_in ? (
-            <p className="text-[11px] text-wave font-display tracking-wider">
+            <p className="text-[11px] text-tint font-display tracking-wider">
               ✓ We&rsquo;ll add these to your binder when they arrive.
             </p>
           ) : null}
@@ -194,12 +209,13 @@ export default async function OrderConfirmationPage({
       </section>
 
       <footer className="text-[12px] text-muted">
-        Questions? Email <span className="underline">[support@aqua-tcg.tbc]</span>{" "}
+        Questions? Email <a href={`mailto:${brand.supportEmail}`} className="underline">{brand.supportEmail}</a>{" "}
         and quote {order.reference}.{" "}
         <Link href="/shop" className="underline">
           Continue shopping →
         </Link>
       </footer>
     </div>
+    </>
   );
 }

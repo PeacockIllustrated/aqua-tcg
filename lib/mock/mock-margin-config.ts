@@ -2,7 +2,7 @@ import type { MockMarginConfig } from "./types";
 
 /**
  * Mirrors `cb_admin_margins` in SCHEMA.sql so Phase 2 can swap to a real row.
- * Every value here is a Lewis-facing dial in the /admin/pricing wireframe.
+ * Every value here is an operator-facing dial in the /admin/pricing wireframe.
  */
 export const MOCK_MARGIN_CONFIG: MockMarginConfig = {
   id: "mock-margin-2026-04",

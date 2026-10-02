@@ -3,12 +3,14 @@ import { Annotation } from "@/components/wireframe/Annotation";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/Table";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { listHoldersOfCard } from "@/app/_actions/admin";
-import { searchCards } from "@/lib/fixtures/cards";
+import { getSetById, searchCards } from "@/lib/fixtures/cards";
+
+export const metadata = { title: "Sourcing" };
 
 /**
  * `/admin/sourcing?card=<id>` · Phase 6 Slice C2.
  *
- * "Someone wants what you have." Aqua TCG picks a card (usually because
+ * "Someone wants what you have." The shop picks a card (usually because
  * he has a buyer), this view lists every user whose binder has it so
  * he can message them an enhanced buyback offer.
  *
@@ -37,7 +39,7 @@ export default async function AdminSourcingPage({
           { label: "Sourcing" },
         ]}
         title="Who owns this card?"
-        kicker={{ label: "CROSS-BINDER", tone: "ocean" }}
+        kicker={{ label: "CROSS-BINDER", tone: "brand" }}
         subtitle="Cards live in user binders — use this view when you have a buyer and need to source. Reach out to holders with an enhanced buyback offer."
       />
 
@@ -60,7 +62,7 @@ export default async function AdminSourcingPage({
         </label>
         <button
           type="submit"
-          className="pop-block rounded-sm bg-sun px-3 py-1.5 font-display text-[11px] tracking-wider text-ink self-start"
+          className="pop-block rounded-sm bg-highlight px-3 py-1.5 font-display text-[11px] tracking-wider text-ink self-start"
         >
           Search
         </button>
@@ -75,7 +77,7 @@ export default async function AdminSourcingPage({
           Search for a card above, or click any row on{" "}
           <Link
             href="/admin/demand"
-            className="underline decoration-2 underline-offset-2 hover:text-ocean"
+            className="underline decoration-2 underline-offset-2 hover:text-brand"
           >
             Demand
           </Link>{" "}
@@ -113,7 +115,9 @@ function SearchResults({ query }: { query: string }) {
             return (
               <TR key={c.id}>
                 <TD>{c.name}</TD>
-                <TD className="text-[11px] text-muted">{setId}</TD>
+                <TD className="text-[11px] text-muted">
+                  {getSetById(setId)?.name ?? setId}
+                </TD>
                 <TD className="text-[11px] tabular-nums">{c.number}</TD>
                 <TD>
                   <Link
@@ -148,7 +152,7 @@ async function HoldersView({ cardId }: { cardId: string }) {
           {set_name} ·{" "}
           <Link
             href={`/admin/demand/${cardId}`}
-            className="underline decoration-2 underline-offset-2 hover:text-ocean"
+            className="underline decoration-2 underline-offset-2 hover:text-brand"
           >
             demand drilldown →
           </Link>
@@ -164,7 +168,7 @@ async function HoldersView({ cardId }: { cardId: string }) {
         </div>
         {holders.length === 0 ? (
           <div className="pop-card rounded-md p-6 text-center text-secondary text-[13px]">
-            No users hold this card yet.
+            No collectors have this card in their binder yet.
           </div>
         ) : (
           <Table>
@@ -195,13 +199,17 @@ async function HoldersView({ cardId }: { cardId: string }) {
                   <TD className="tabular-nums">{h.quantity}</TD>
                   <TD>
                     {h.is_grail ? (
-                      <span className="border-2 border-ink rounded-sm px-1.5 py-0.5 font-display text-[10px] bg-sun">
+                      <span className="border-2 border-ink rounded-sm px-1.5 py-0.5 font-display text-[10px] bg-highlight">
                         ★ Grail
                       </span>
                     ) : null}
                   </TD>
                   <TD className="text-[11px] font-display tracking-wider text-muted">
-                    {h.source}
+                    {h.source === "shop_order"
+                      ? "Bought from you"
+                      : h.source === "import"
+                        ? "Imported"
+                        : "Added by owner"}
                   </TD>
                   <TD className="text-[11px] text-muted tabular-nums">
                     {new Date(h.acquired_at).toISOString().slice(0, 10)}

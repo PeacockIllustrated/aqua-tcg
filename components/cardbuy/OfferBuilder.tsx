@@ -12,6 +12,7 @@ import type {
 import { computeMockOffer, formatGBP } from "@/lib/mock/mock-offer";
 import { Button, Field, Select } from "@/components/ui/Form";
 import { addSubmissionItem } from "@/app/_actions/submission";
+import { unwrapAction } from "@/lib/mock/preview-actions";
 
 const CONDITIONS: Condition[] = ["NM", "LP", "MP", "HP", "DMG"];
 const COMPANIES: GradingCompany[] = ["PSA", "CGC", "BGS", "SGC", "ACE"];
@@ -72,7 +73,7 @@ export function OfferBuilder({
     setAdded(false);
     startTransition(async () => {
       try {
-        await addSubmissionItem({
+        const result = await addSubmissionItem({
           cardId: card.id,
           variant,
           condition: variant === "raw" ? condition : undefined,
@@ -92,6 +93,7 @@ export function OfferBuilder({
             grade: variant === "graded" ? grade : null,
           },
         });
+        unwrapAction(result);
         setAdded(true);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to add");
@@ -113,7 +115,7 @@ export function OfferBuilder({
           className={`px-4 py-2 font-display text-[12px] tracking-wider transition-colors ${
             variant === "raw"
               ? "bg-ink text-paper-strong"
-              : "bg-paper-strong text-ink hover:bg-sun"
+              : "bg-paper-strong text-ink hover:bg-highlight"
           }`}
         >
           Raw
@@ -127,7 +129,7 @@ export function OfferBuilder({
           className={`px-4 py-2 font-display text-[12px] tracking-wider border-l-[3px] border-ink transition-colors ${
             variant === "graded"
               ? "bg-ink text-paper-strong"
-              : "bg-paper-strong text-ink hover:bg-sun"
+              : "bg-paper-strong text-ink hover:bg-highlight"
           } disabled:text-muted disabled:cursor-not-allowed disabled:hover:bg-paper-strong`}
         >
           Graded
@@ -203,7 +205,7 @@ export function OfferBuilder({
 
       {/* Offer headline */}
       <div className="border-t-[3px] border-ink pt-5 flex flex-col gap-3">
-        <div className="relative bg-sun border-[3px] border-ink rounded-md p-4 flex flex-col gap-1 overflow-hidden">
+        <div className="relative bg-highlight border-[3px] border-ink rounded-md p-4 flex flex-col gap-1 overflow-hidden">
           <span className="font-display text-[10px] tracking-wider text-ink/70">
             {offer.belowMin ? "Value" : "Our offer"}
           </span>
@@ -211,9 +213,10 @@ export function OfferBuilder({
             {formatGBP(offer.offerGbp * qty)}
           </div>
           <div className="text-[11px] text-secondary leading-snug">
-            Market baseline {formatGBP(offer.baselineGbp)} ·{" "}
-            {offer.multiplierLabel} · {offer.marginLabel} ={" "}
-            {formatGBP(offer.offerGbp)} per card
+            {/* The baseline × multiplier × margin breakdown stays in the
+                admin panel; sellers just see the per-card number. */}
+            {qty > 1 ? `${formatGBP(offer.offerGbp)} per card · ` : ""}
+            Based on current market prices for this condition.
           </div>
 
           {offer.belowMin ? (
@@ -221,7 +224,7 @@ export function OfferBuilder({
               aria-hidden
               className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rotate-[-8deg]"
             >
-              <div className="relative border-[4px] border-warn text-warn px-3 py-2 rounded-sm bg-sun/80 shadow-[3px_3px_0_0_rgba(0,0,0,0.15)]">
+              <div className="relative border-[4px] border-warn text-warn px-3 py-2 rounded-sm bg-highlight/80 shadow-[3px_3px_0_0_rgba(0,0,0,0.15)]">
                 <div className="absolute inset-[3px] border-2 border-warn/70 rounded-sm pointer-events-none" />
                 <div className="font-display uppercase text-[12px] tracking-[0.08em] leading-tight text-center">
                   Sorry<br />
@@ -256,15 +259,15 @@ export function OfferBuilder({
       ) : null}
 
       {added ? (
-        <div className="bg-wave/20 border-2 border-ink rounded-md px-3 py-3 flex items-center justify-between gap-3">
+        <div className="bg-tint/20 border-2 border-ink rounded-md px-3 py-3 flex items-center justify-between gap-3">
           <span className="font-display text-[13px] tracking-tight">
-            Added to submission ✓
+            Added to your sale ✓
           </span>
           <Link
             href="/submission"
-            className="font-display text-[11px] tracking-wider underline underline-offset-4 decoration-2 hover:text-ocean"
+            className="font-display text-[11px] tracking-wider underline underline-offset-4 decoration-2 hover:text-brand"
           >
-            View submission →
+            View your sale →
           </Link>
         </div>
       ) : isAuthenticated ? (
@@ -274,7 +277,7 @@ export function OfferBuilder({
           className="w-full"
           onClick={handleAdd}
         >
-          {pending ? "Adding…" : "Add to submission →"}
+          {pending ? "Adding…" : "Add to my sale →"}
         </Button>
       ) : (
         <Link

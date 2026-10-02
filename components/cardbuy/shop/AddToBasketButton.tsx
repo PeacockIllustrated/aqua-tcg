@@ -75,7 +75,7 @@ export function AddToBasketButton({
           You have {inCart} of these in your basket.{" "}
           <Link
             href="/shop/cart"
-            className="underline decoration-2 underline-offset-2 hover:text-ocean"
+            className="underline decoration-2 underline-offset-2 hover:text-brand"
           >
             Review basket →
           </Link>

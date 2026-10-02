@@ -8,6 +8,10 @@ import {
   type TcgPrice,
   type TcgProduct,
 } from "@/lib/pricing/tcgcsv";
+import { isAdminPreview } from "@/app/_actions/admin";
+import { SAMPLE_MAPPING_SETS, sampleTcgPreview } from "@/lib/mock/admin-sample";
+
+export const metadata = { title: "Price feed" };
 
 /**
  * Phase 3 slice 1 verification page.
@@ -55,21 +59,33 @@ function productRarity(p: TcgProduct): string | null {
 }
 
 export default async function SyncPreviewPage() {
+  // Preview mode shows a sample feed instead of hitting TCGCSV live.
+  const sample = (await isAdminPreview()) ? sampleTcgPreview() : null;
+  const setsShown: Record<string, readonly string[]> = sample
+    ? Object.fromEntries(SAMPLE_MAPPING_SETS.map((s) => [s.setId, [s.tcgName]]))
+    : PHASE3_SLICE1_SETS;
+
   // 1. Resolve the 6 first-gen set ids in parallel with a single /groups call.
-  const groupsResult = await timed(() => resolveGroupIds(PHASE3_SLICE1_SETS));
+  const groupsResult = sample
+    ? ({ ok: true, value: sample.groups, ms: 212 } as const)
+    : await timed(() => resolveGroupIds(PHASE3_SLICE1_SETS));
 
   // 2. For Base Set specifically, fetch products + prices so we can preview
   //    the join shape. Only fires if we successfully resolved base1.
   const base1GroupId =
     groupsResult.ok ? groupsResult.value.base1 : null;
 
-  const productsResult = base1GroupId
-    ? await timed(() => fetchProducts(base1GroupId))
-    : null;
+  const productsResult = sample
+    ? ({ ok: true, value: sample.products, ms: 341 } as const)
+    : base1GroupId
+      ? await timed(() => fetchProducts(base1GroupId))
+      : null;
 
-  const pricesResult = base1GroupId
-    ? await timed(() => fetchPrices(base1GroupId))
-    : null;
+  const pricesResult = sample
+    ? ({ ok: true, value: sample.prices, ms: 298 } as const)
+    : base1GroupId
+      ? await timed(() => fetchPrices(base1GroupId))
+      : null;
 
   // Build productId → product lookup for joining to price rows.
   const productById = new Map<number, TcgProduct>();
@@ -93,22 +109,22 @@ export default async function SyncPreviewPage() {
     <div className="px-4 py-6 max-w-[1200px] mx-auto flex flex-col gap-8">
       <header className="flex flex-col gap-2">
         <span className="font-display text-[10px] tracking-wider text-muted">
-          Phase 3 · Slice 1 · Verification
+          Catalogue · Price feed
         </span>
         <h1 className="font-display text-[32px] leading-none tracking-tight">
-          TCGCSV sync preview
+          Price feed preview
         </h1>
         <p className="text-secondary text-[13px] max-w-[72ch]">
-          Live fetch of TCGCSV (no cache, no DB writes). Refresh the page to
-          re-pull. Use this to confirm set-name mapping and the raw
-          price-row shape before we commit to schema.
+          A look at the raw TCGplayer market data behind your buy prices —
+          how each set is matched, and the latest price rows for Base Set.
+          Nothing on this page changes your prices.
         </p>
         <div className="flex gap-3 pt-2">
           <Link
             href="/admin/pricing"
             className="font-display text-[11px] tracking-wider underline underline-offset-4"
           >
-            ← Back to /admin/pricing
+            ← Pricing
           </Link>
         </div>
       </header>
@@ -137,7 +153,7 @@ export default async function SyncPreviewPage() {
               </TR>
             </THead>
             <TBody>
-              {Object.entries(PHASE3_SLICE1_SETS).map(([localId, aliases]) => {
+              {Object.entries(setsShown).map(([localId, aliases]) => {
                 const gid = groupsResult.value[localId];
                 const tcgName = aliases[0]; // primary name; fallbacks still tried
                 return (
@@ -160,7 +176,7 @@ export default async function SyncPreviewPage() {
                     </TD>
                     <TD>
                       {gid != null ? (
-                        <span className="font-display text-[10px] tracking-wider bg-wave border-2 border-ink px-2 py-0.5">
+                        <span className="font-display text-[10px] tracking-wider bg-tint border-2 border-ink px-2 py-0.5">
                           MATCHED
                         </span>
                       ) : (

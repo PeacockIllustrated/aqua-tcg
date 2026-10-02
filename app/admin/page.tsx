@@ -7,12 +7,8 @@ import {
   getAdminSubmissionStats,
   getAdminRecentActivity,
 } from "@/app/_actions/admin";
-import { listAdminOrders } from "@/app/_actions/admin-shop";
-import {
-  MOCK_LISTINGS,
-  FEATURED_SLOT_COUNT,
-  getFeaturedListings,
-} from "@/lib/mock/mock-listings";
+import { listAdminListings, listAdminOrders } from "@/app/_actions/admin-shop";
+import { FEATURED_SLOT_COUNT } from "@/lib/mock/mock-listings";
 import { formatGBP } from "@/lib/mock/mock-offer";
 import type { SubmissionStatus, ShopOrderStatus } from "@/lib/supabase/types";
 
@@ -53,10 +49,11 @@ type ActivityRow = {
 };
 
 export default async function AdminDashboardPage() {
-  const [stats, submissionActivity, orders] = await Promise.all([
+  const [stats, submissionActivity, orders, listings] = await Promise.all([
     getAdminSubmissionStats(),
     getAdminRecentActivity(6),
     listAdminOrders("all"),
+    listAdminListings("all"),
   ]);
 
   const revenueGross = orders
@@ -68,11 +65,15 @@ export default async function AdminDashboardPage() {
   const pendingPayment = orders.filter(
     (o) => o.status === "pending_payment",
   ).length;
-  const activeListings = MOCK_LISTINGS.filter((l) => l.status === "active").length;
-  const lowStock = MOCK_LISTINGS.filter(
-    (l) => l.status === "active" && l.qty_in_stock <= 1,
+  const activeListings = listings.filter((l) => l.status === "active").length;
+  const lowStock = listings.filter(
+    // Graded slabs are one-offs by nature; only raw singles can run low.
+    (l) => l.status === "active" && l.variant === "raw" && l.qty_in_stock <= 1,
   ).length;
-  const featured = getFeaturedListings(FEATURED_SLOT_COUNT);
+  const featured = listings
+    .filter((l) => l.is_featured && l.status === "active" && l.qty_in_stock > 0)
+    .sort((a, b) => (a.featured_priority ?? 99) - (b.featured_priority ?? 99))
+    .slice(0, FEATURED_SLOT_COUNT);
   const emptyFeaturedSlots = FEATURED_SLOT_COUNT - featured.length;
 
   const activity: ActivityRow[] = [
@@ -112,8 +113,8 @@ export default async function AdminDashboardPage() {
     <div className="px-4 md:px-6 py-6 max-w-[1400px] mx-auto flex flex-col gap-6">
       <AdminPageHeader
         crumbs={[{ label: "Admin", href: "/admin" }, { label: "Dashboard" }]}
-        title="Today at Aqua TCG"
-        kicker={{ label: "LIVE", tone: "wave" }}
+        title="Today at the shop"
+        kicker={{ label: "OVERVIEW", tone: "tint" }}
         subtitle="The two sides of the business in one glance — buy queue, sell queue, and what needs your attention now."
       />
 
@@ -172,7 +173,7 @@ export default async function AdminDashboardPage() {
           eyebrow="Buy side"
           title="Buylist"
           actions={
-            <span className="border-2 border-ink bg-sun px-1.5 py-0.5 font-display text-[9px] tracking-wider rounded-sm">
+            <span className="border-2 border-ink bg-highlight px-1.5 py-0.5 font-display text-[9px] tracking-wider rounded-sm">
               LIVE
             </span>
           }
@@ -197,7 +198,7 @@ export default async function AdminDashboardPage() {
             <StatCard
               label="Awaiting cards"
               value={stats.awaitingCards}
-              tone={stats.awaitingCards > 0 ? "sun" : "paper"}
+              tone={stats.awaitingCards > 0 ? "highlight" : "paper"}
               sub={stats.awaitingCards > 0 ? "Posted but not received" : "None"}
               href="/admin/submissions?status=submitted"
             />
@@ -205,13 +206,13 @@ export default async function AdminDashboardPage() {
           <div className="flex gap-3 pt-3 text-[11px] font-display tracking-wider">
             <Link
               href="/admin/submissions"
-              className="underline underline-offset-4 decoration-2 hover:text-ocean"
+              className="underline underline-offset-4 decoration-2 hover:text-brand"
             >
               ALL SUBMISSIONS →
             </Link>
             <Link
               href="/admin/pricing"
-              className="underline underline-offset-4 decoration-2 hover:text-ocean"
+              className="underline underline-offset-4 decoration-2 hover:text-brand"
             >
               MARGIN DIALS →
             </Link>
@@ -222,7 +223,7 @@ export default async function AdminDashboardPage() {
           eyebrow="Sell side"
           title="Shopfront"
           actions={
-            <span className="border-2 border-ink bg-ocean px-1.5 py-0.5 font-display text-[9px] tracking-wider rounded-sm">
+            <span className="border-2 border-ink bg-brand px-1.5 py-0.5 font-display text-[9px] tracking-wider rounded-sm">
               LIVE
             </span>
           }
@@ -236,40 +237,40 @@ export default async function AdminDashboardPage() {
             <StatCard
               label="Orders to pack"
               value={ordersToPack}
-              tone={ordersToPack > 0 ? "ocean" : "paper"}
+              tone={ordersToPack > 0 ? "brand" : "paper"}
               href="/admin/orders?status=paid"
               sub={ordersToPack > 0 ? "Needs shipping label" : "None"}
             />
             <StatCard
               label="Active listings"
               value={activeListings}
-              sub={`${MOCK_LISTINGS.length} total stocked`}
+              sub={`${listings.length} total stocked`}
               href="/admin/inventory"
             />
             <StatCard
               label="Low-stock alerts"
               value={lowStock}
               tone={lowStock > 0 ? "warn" : "paper"}
-              sub={lowStock > 0 ? "1 or fewer in stock" : "Healthy"}
+              sub={lowStock > 0 ? "Raw singles with 1 or fewer left" : "Healthy"}
               href="/admin/inventory"
             />
           </div>
           <div className="flex gap-3 pt-3 text-[11px] font-display tracking-wider">
             <Link
               href="/admin/orders"
-              className="underline underline-offset-4 decoration-2 hover:text-ocean"
+              className="underline underline-offset-4 decoration-2 hover:text-brand"
             >
               ALL ORDERS →
             </Link>
             <Link
               href="/admin/inventory"
-              className="underline underline-offset-4 decoration-2 hover:text-ocean"
+              className="underline underline-offset-4 decoration-2 hover:text-brand"
             >
               INVENTORY →
             </Link>
             <Link
               href="/admin/demand"
-              className="underline underline-offset-4 decoration-2 hover:text-ocean"
+              className="underline underline-offset-4 decoration-2 hover:text-brand"
             >
               DEMAND →
             </Link>
@@ -284,7 +285,7 @@ export default async function AdminDashboardPage() {
         actions={
           <Link
             href="/admin/inventory?tab=featured"
-            className="font-display text-[11px] tracking-wider underline underline-offset-4 decoration-2 hover:text-ocean"
+            className="font-display text-[11px] tracking-wider underline underline-offset-4 decoration-2 hover:text-brand"
           >
             Manage in inventory →
           </Link>
@@ -348,22 +349,22 @@ export default async function AdminDashboardPage() {
           <TBody>
             {activity.length === 0 ? (
               <TR>
-                <TD className="text-center text-secondary py-6">
+                <TD colSpan={6} className="text-center text-secondary py-6">
                   No activity yet — waiting for your first submission.
                 </TD>
               </TR>
             ) : (
               activity.map((a) => (
                 <TR key={`${a.kind}-${a.ref}`}>
-                  <TD className="text-muted text-[11px] font-mono tabular-nums">
+                  <TD className="text-muted text-[11px] font-mono tabular-nums whitespace-nowrap">
                     {new Date(a.when).toISOString().slice(0, 16).replace("T", " ")}
                   </TD>
                   <TD>
                     <span
                       className={`border-2 border-ink px-1.5 py-0.5 font-display text-[9px] tracking-wider rounded-sm ${
                         a.kind === "submission"
-                          ? "bg-sun text-ink"
-                          : "bg-ocean text-ink"
+                          ? "bg-highlight text-ink"
+                          : "bg-brand text-ink"
                       }`}
                     >
                       {a.kind === "submission" ? "BUY" : "SELL"}
@@ -372,13 +373,13 @@ export default async function AdminDashboardPage() {
                   <TD>
                     <Link
                       href={a.href}
-                      className="font-mono text-[12px] underline underline-offset-4 decoration-2 hover:text-ocean"
+                      className="font-mono text-[12px] underline underline-offset-4 decoration-2 hover:text-brand whitespace-nowrap"
                     >
                       {a.ref}
                     </Link>
                   </TD>
-                  <TD className="text-[13px]">{a.who}</TD>
-                  <TD className="text-[12px] font-display tracking-wider uppercase">
+                  <TD className="text-[13px] whitespace-nowrap">{a.who}</TD>
+                  <TD className="text-[12px] font-display tracking-wider uppercase whitespace-nowrap">
                     {a.status}
                   </TD>
                   <TD className="text-right font-display tabular-nums">
@@ -418,7 +419,7 @@ function buildActionQueue(input: {
       count: input.received,
       cta: "Post arrived, need quoting",
       href: "/admin/submissions?status=received",
-      bg: "bg-sun",
+      bg: "bg-highlight",
     });
   }
   if (input.offerRevised > 0) {
@@ -445,7 +446,7 @@ function buildActionQueue(input: {
       count: input.pendingPayment,
       cta: "Buyer hasn't paid yet",
       href: "/admin/orders?status=pending_payment",
-      bg: "bg-ocean",
+      bg: "bg-brand",
     });
   }
   if (input.ordersToPack > 0) {
@@ -454,7 +455,7 @@ function buildActionQueue(input: {
       count: input.ordersToPack,
       cta: "Paid — print label and send",
       href: "/admin/orders?status=paid",
-      bg: "bg-ocean",
+      bg: "bg-brand",
     });
   }
   if (input.lowStock > 0) {
@@ -463,7 +464,7 @@ function buildActionQueue(input: {
       count: input.lowStock,
       cta: "One or fewer remaining",
       href: "/admin/inventory",
-      bg: "bg-wave",
+      bg: "bg-tint",
     });
   }
   if (input.emptyFeaturedSlots > 0) {
@@ -472,7 +473,7 @@ function buildActionQueue(input: {
       count: input.emptyFeaturedSlots,
       cta: "Homepage promo slots unused",
       href: "/admin/inventory?tab=featured",
-      bg: "bg-wave",
+      bg: "bg-tint",
     });
   }
   return items;

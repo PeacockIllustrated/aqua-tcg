@@ -1,31 +1,36 @@
 import { redirect } from "next/navigation";
 import { Annotation } from "@/components/wireframe/Annotation";
-import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/preview-server";
+import { PreviewBanner } from "@/components/preview/PreviewBanner";
+import { PREVIEW_PROFILE } from "@/lib/mock/mock-customer";
 import { getMyConsent } from "@/app/_actions/consent";
 import { ConsentToggles } from "./ConsentToggles";
 import { DeleteAccountForm } from "./DeleteAccountForm";
 import type { ConsentSnapshot } from "@/app/_actions/consent";
 
+export const metadata = { title: "Account & privacy" };
+
 /**
  * `/settings` · Phase 6 · Slice C1.
  *
  * Granular marketing-consent toggles + right-to-erasure. Signed-out
- * users are redirected to login. Consent changes land via
+ * users are redirected to login, or (preview mode) shown the sample
+ * customer's settings under a preview banner. Consent changes land via
  * `app/_actions/consent.ts`. Transactional email (service_emails) is
  * essential and therefore not user-editable.
  */
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/settings");
+  const { user, preview } = await getViewer();
+  if (!user && !preview) redirect("/login?next=/settings");
 
   const consent = (await getMyConsent()) ?? defaultConsent();
+  const email = preview ? PREVIEW_PROFILE.email : (user?.email ?? "");
 
   return (
+    <>
+    {preview ? <PreviewBanner next="/settings" /> : null}
     <main className="max-w-[720px] mx-auto px-4 py-8 md:py-12 flex flex-col gap-8">
       <header className="flex flex-col gap-1">
         <Annotation>ACCOUNT</Annotation>
@@ -33,7 +38,7 @@ export default async function SettingsPage() {
           Settings
         </h1>
         <p className="text-[12px] text-secondary">
-          Signed in as <span className="text-ink">{user.email}</span>
+          Signed in as <span className="text-ink">{email}</span>
         </p>
       </header>
 
@@ -44,7 +49,7 @@ export default async function SettingsPage() {
             Email &amp; messaging
           </h2>
           <p className="text-[12px] text-secondary mt-1">
-            We contact you about your submissions and shop orders regardless
+            We contact you about your sales and shop orders regardless
             of these toggles — that&rsquo;s transactional mail and essential
             to the service. Everything below is optional.
           </p>
@@ -61,7 +66,7 @@ export default async function SettingsPage() {
           See our{" "}
           <a
             href="/privacy"
-            className="underline decoration-2 underline-offset-2 hover:text-ocean"
+            className="underline decoration-2 underline-offset-2 hover:text-brand"
           >
             Privacy Policy
           </a>{" "}
@@ -90,11 +95,12 @@ export default async function SettingsPage() {
         </h2>
         <p className="text-[12px] text-secondary">
           Permanently removes your profile, binder, wishlist, and
-          submissions. Cannot be undone.
+          sales. Cannot be undone.
         </p>
         <DeleteAccountForm />
       </section>
     </main>
+    </>
   );
 }
 

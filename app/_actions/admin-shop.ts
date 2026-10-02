@@ -1,8 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import { getCardById } from "@/lib/fixtures/cards";
+import { getAdminViewer, PREVIEW_SAVE_MESSAGE } from "@/app/_actions/admin";
+import {
+  sampleListings,
+  sampleOrders,
+  sampleSetName,
+  sampleUsers,
+} from "@/lib/mock/admin-sample";
 import type {
   GradingCompany,
   Grade,
@@ -25,20 +31,42 @@ import type {
  *
  * Slice B2 (shop-order → binder auto-add) lands in
  * `updateOrderStatus` — see `addShopOrderToBinder` at the bottom.
+ *
+ * Preview mode (see `getAdminViewer`): reads return sample data and
+ * mutations return `{ ok: false, preview: true, error }` without
+ * touching the database.
  * ───────────────────────────────────────────────────────────────── */
+
+export type AdminMutationResult<T = Record<never, never>> =
+  | ({ ok: true } & T)
+  | { ok: false; error: string; preview?: boolean };
+
+function previewResult(): { ok: false; error: string; preview: true } {
+  return { ok: false, error: PREVIEW_SAVE_MESSAGE, preview: true };
+}
 
 /* ─── Listings ──────────────────────────────────────────────────── */
 
 export type AdminListingRow = LewisListing & {
   card_name: string;
   set_name: string;
+  image_url: string | null;
   qty_available: number;
 };
 
 export async function listAdminListings(
   statusFilter?: ListingStatus | "all",
 ): Promise<AdminListingRow[]> {
-  const supabase = await createClient();
+  const viewer = await getAdminViewer();
+  if (viewer.preview) {
+    return sampleListings()
+      .filter(
+        (l) => !statusFilter || statusFilter === "all" || l.status === statusFilter,
+      )
+      .sort((a, b) => Number(b.is_featured) - Number(a.is_featured))
+      .map(toAdminListingRow);
+  }
+  const supabase = viewer.supabase;
   let q = supabase
     .from("lewis_listings")
     .select("*")
@@ -51,15 +79,20 @@ export async function listAdminListings(
   if (error) throw new Error(`Failed to load listings: ${error.message}`);
   const rows = (data ?? []) as LewisListing[];
 
-  return rows.map((l) => {
-    const card = getCardById(l.card_id);
-    return {
-      ...l,
-      card_name: card?.name ?? l.card_id,
-      set_name: SET_NAMES[l.card_id.split("-")[0]] ?? l.card_id.split("-")[0],
-      qty_available: l.qty_in_stock - l.qty_reserved,
-    };
-  });
+  return rows.map(toAdminListingRow);
+}
+
+function toAdminListingRow(l: LewisListing): AdminListingRow {
+  const card = getCardById(l.card_id);
+  return {
+    ...l,
+    price_gbp: Number(l.price_gbp),
+    cost_basis_gbp: Number(l.cost_basis_gbp),
+    card_name: card?.name ?? l.card_id,
+    set_name: sampleSetName(l.card_id),
+    image_url: card?.images.small ?? null,
+    qty_available: l.qty_in_stock - l.qty_reserved,
+  };
 }
 
 export type CreateListingInput = {
@@ -78,23 +111,31 @@ export type CreateListingInput = {
 
 export async function createListing(
   input: CreateListingInput,
-): Promise<{ listingId: string }> {
-  const supabase = await createClient();
-
+): Promise<AdminMutationResult<{ listingId: string }>> {
   // Shape validation matches the DB check constraint.
+  if (!getCardById(input.cardId)) {
+    return { ok: false, error: `Unknown card id '${input.cardId}'.` };
+  }
   if (input.variant === "raw") {
-    if (!input.condition) throw new Error("Raw listings need a condition.");
+    if (!input.condition) return { ok: false, error: "Raw listings need a condition." };
     if (input.gradingCompany || input.grade) {
-      throw new Error("Raw listings can't have grading fields.");
+      return { ok: false, error: "Raw listings can't have grading fields." };
     }
   } else {
     if (!input.gradingCompany || !input.grade) {
-      throw new Error("Graded listings need company + grade.");
+      return { ok: false, error: "Graded listings need company + grade." };
     }
     if (input.condition) {
-      throw new Error("Graded listings can't have a raw condition.");
+      return { ok: false, error: "Graded listings can't have a raw condition." };
     }
   }
+  if (!(input.priceGbp > 0) || input.costBasisGbp < 0 || input.qtyInStock < 0) {
+    return { ok: false, error: "Price, cost and stock must be positive numbers." };
+  }
+
+  const viewer = await getAdminViewer();
+  if (viewer.preview) return previewResult();
+  const supabase = viewer.supabase;
 
   // Generate an SKU. Pattern mirrors the mock: {CARD_ID}-{variant}-{nn}
   // where nn is a monotonically increasing counter we derive from the
@@ -131,12 +172,15 @@ export async function createListing(
     .select("id")
     .single();
   if (error || !data) {
-    throw new Error(`Failed to create listing: ${error?.message ?? "unknown"}`);
+    return {
+      ok: false,
+      error: `Failed to create listing: ${error?.message ?? "unknown"}`,
+    };
   }
 
   revalidatePath("/admin/inventory");
   revalidatePath("/shop");
-  return { listingId: data.id };
+  return { ok: true, listingId: data.id };
 }
 
 export type UpdateListingInput = {
@@ -152,8 +196,10 @@ export type UpdateListingInput = {
 export async function updateListing(
   listingId: string,
   patch: UpdateListingInput,
-): Promise<void> {
-  const supabase = await createClient();
+): Promise<AdminMutationResult> {
+  const viewer = await getAdminViewer();
+  if (viewer.preview) return previewResult();
+  const supabase = viewer.supabase;
   const update: Partial<LewisListing> = {};
   if (patch.priceGbp !== undefined) update.price_gbp = patch.priceGbp;
   if (patch.costBasisGbp !== undefined) update.cost_basis_gbp = patch.costBasisGbp;
@@ -165,16 +211,17 @@ export async function updateListing(
   if (patch.conditionNotes !== undefined)
     update.condition_notes = patch.conditionNotes;
 
-  if (Object.keys(update).length === 0) return;
+  if (Object.keys(update).length === 0) return { ok: true };
 
   const { error } = await supabase
     .from("lewis_listings")
     .update(update)
     .eq("id", listingId);
-  if (error) throw new Error(`Failed to update listing: ${error.message}`);
+  if (error) return { ok: false, error: `Failed to update listing: ${error.message}` };
 
   revalidatePath("/admin/inventory");
   revalidatePath("/shop");
+  return { ok: true };
 }
 
 /* ─── Orders ────────────────────────────────────────────────────── */
@@ -186,7 +233,19 @@ export type AdminOrderRow = LewisOrder & {
 export async function listAdminOrders(
   statusFilter?: ShopOrderStatus | "all",
 ): Promise<AdminOrderRow[]> {
-  const supabase = await createClient();
+  const viewer = await getAdminViewer();
+  if (viewer.preview) {
+    return sampleOrders()
+      .filter(
+        ({ order }) =>
+          !statusFilter || statusFilter === "all" || order.status === statusFilter,
+      )
+      .map(({ order, items }) => ({
+        ...order,
+        item_count: items.reduce((s, i) => s + i.qty, 0),
+      }));
+  }
+  const supabase = viewer.supabase;
   let q = supabase
     .from("lewis_orders")
     .select("*")
@@ -223,7 +282,18 @@ export async function getAdminOrder(reference: string): Promise<
     }
   | null
 > {
-  const supabase = await createClient();
+  const viewer = await getAdminViewer();
+  if (viewer.preview) {
+    const hit = sampleOrders().find((o) => o.order.reference === reference);
+    if (!hit) return null;
+    const u = sampleUsers().find((x) => x.id === hit.order.buyer_id);
+    return {
+      order: hit.order,
+      items: hit.items,
+      buyer: u ? { id: u.id, email: u.email, full_name: u.full_name } : null,
+    };
+  }
+  const supabase = viewer.supabase;
   const { data: order } = await supabase
     .from("lewis_orders")
     .select("*")
@@ -269,18 +339,20 @@ export async function updateOrderStatus(
   orderId: string,
   newStatus: ShopOrderStatus,
   opts?: { trackingNumber?: string; internalNote?: string },
-): Promise<void> {
-  const supabase = await createClient();
+): Promise<AdminMutationResult> {
+  const viewer = await getAdminViewer();
+  if (viewer.preview) return previewResult();
+  const supabase = viewer.supabase;
 
   const { data: existing, error: lookupErr } = await supabase
     .from("lewis_orders")
     .select("*")
     .eq("id", orderId)
     .maybeSingle();
-  if (lookupErr || !existing) throw new Error("Order not found.");
+  if (lookupErr || !existing) return { ok: false, error: "Order not found." };
   const order = existing as LewisOrder;
 
-  if (order.status === newStatus) return;
+  if (order.status === newStatus) return { ok: true };
 
   const patch: Partial<LewisOrder> = { status: newStatus };
   const now = new Date().toISOString();
@@ -301,7 +373,7 @@ export async function updateOrderStatus(
     .from("lewis_orders")
     .update(patch)
     .eq("id", orderId);
-  if (error) throw new Error(`Failed to update order: ${error.message}`);
+  if (error) return { ok: false, error: `Failed to update order: ${error.message}` };
 
   // Slice B2 · shop-order → binder auto-add. Only runs on transition
   // into 'delivered', only if the buyer opted in, and only once per
@@ -312,20 +384,23 @@ export async function updateOrderStatus(
     !order.binder_entries_created_at &&
     order.buyer_id
   ) {
-    await autoAddOrderToBinder(orderId, order.buyer_id);
+    await autoAddOrderToBinder(supabase, orderId, order.buyer_id);
   }
 
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${order.reference}`);
   revalidatePath(`/shop/order/${order.reference}`);
   if (newStatus === "delivered") revalidatePath("/binder");
+  return { ok: true };
 }
 
+type Supabase = NonNullable<Awaited<ReturnType<typeof getAdminViewer>>["supabase"]>;
+
 async function autoAddOrderToBinder(
+  supabase: Supabase,
   orderId: string,
   buyerId: string,
 ): Promise<void> {
-  const supabase = await createClient();
 
   const { data: items } = await supabase
     .from("lewis_order_items")
@@ -376,12 +451,3 @@ async function autoAddOrderToBinder(
     .update({ binder_entries_created_at: new Date().toISOString() })
     .eq("id", orderId);
 }
-
-const SET_NAMES: Record<string, string> = {
-  base1: "Base Set",
-  base2: "Jungle",
-  base3: "Fossil",
-  base4: "Base Set 2",
-  base5: "Team Rocket",
-  basep: "Wizards Black Star Promos",
-};

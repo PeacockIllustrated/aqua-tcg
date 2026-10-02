@@ -12,6 +12,9 @@ import {
   getSetsGroupedBySeries,
   LAST_SYNCED,
 } from "@/lib/fixtures/cards";
+import { getCardCoverageStats } from "@/app/_actions/prices";
+
+export const metadata = { title: "Cards" };
 
 type SearchParams = Promise<{
   set?: string;
@@ -42,6 +45,8 @@ export default async function AdminCardsPage({
   searchParams: SearchParams;
 }) {
   const sp = await searchParams;
+  const { lastSyncAt } = await getCardCoverageStats();
+  const syncedOn = lastSyncAt ? lastSyncAt.slice(0, 10) : LAST_SYNCED;
   let rows = ALL;
   if (sp.set) rows = rows.filter((c) => setIdOf(c) === sp.set);
   if (sp.rarity) rows = rows.filter((c) => (c.rarity ?? "Promo") === sp.rarity);
@@ -74,7 +79,7 @@ export default async function AdminCardsPage({
           { label: "Cards" },
         ]}
         title="Card catalogue"
-        kicker={{ label: `SYNCED ${LAST_SYNCED}`, tone: "wave" }}
+        kicker={{ label: `SYNCED ${syncedOn}`, tone: "tint" }}
         subtitle="The full Pokémon TCG catalogue with live market prices pulled from TCGCSV."
         actions={
           <>
@@ -168,7 +173,7 @@ export default async function AdminCardsPage({
           {hasFilter ? (
             <Link
               href="/admin/cards"
-              className="border-2 border-ink rounded-md bg-paper-strong text-ink px-3 py-2 font-display text-[11px] tracking-wider uppercase hover:bg-sun"
+              className="border-2 border-ink rounded-md bg-paper-strong text-ink px-3 py-2 font-display text-[11px] tracking-wider uppercase hover:bg-highlight"
             >
               Clear
             </Link>
@@ -180,7 +185,7 @@ export default async function AdminCardsPage({
             <span className="font-display text-[10px] tracking-[0.2em] uppercase text-muted">
               Active
             </span>
-            <span className="inline-flex items-center gap-2 bg-ocean text-ink border-2 border-ink rounded-md px-2 py-1 font-display text-[11px] tracking-wider">
+            <span className="inline-flex items-center gap-2 bg-brand text-ink border-2 border-ink rounded-md px-2 py-1 font-display text-[11px] tracking-wider">
               {activeSet.symbolUrl ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
@@ -232,7 +237,7 @@ export default async function AdminCardsPage({
                 <TD>
                   <Link
                     href={`/card/${card.id}`}
-                    className="font-display tracking-tight text-[13px] hover:text-ocean"
+                    className="font-display tracking-tight text-[13px] hover:text-brand"
                   >
                     {card.name}
                   </Link>
@@ -251,11 +256,11 @@ export default async function AdminCardsPage({
                   {mock?.sale_count_30d ?? 0} / 30d{" "}
                   {lowConf ? (
                     <span className="text-warn text-[10px] font-display tracking-wider">
-                      [LOW]
+                      LOW
                     </span>
                   ) : null}
                 </TD>
-                <TD className="text-muted text-[11px] tabular-nums">{LAST_SYNCED}</TD>
+                <TD className="text-muted text-[11px] tabular-nums">{syncedOn}</TD>
               </TR>
             );
           })}
@@ -273,7 +278,7 @@ export default async function AdminCardsPage({
             href={`/admin/cards${qs({ ...sp, page: String(Math.max(1, currentPage - 1)) })}`}
             aria-disabled={currentPage <= 1}
             className={`border-2 border-ink rounded-sm px-3 py-1.5 font-display text-[11px] tracking-wider ${
-              currentPage <= 1 ? "text-muted border-rule pointer-events-none" : "hover:bg-sun"
+              currentPage <= 1 ? "text-muted border-rule pointer-events-none" : "hover:bg-highlight"
             }`}
           >
             ← PREV
@@ -285,7 +290,7 @@ export default async function AdminCardsPage({
             href={`/admin/cards${qs({ ...sp, page: String(Math.min(pageCount, currentPage + 1)) })}`}
             aria-disabled={currentPage >= pageCount}
             className={`border-2 border-ink rounded-sm px-3 py-1.5 font-display text-[11px] tracking-wider ${
-              currentPage >= pageCount ? "text-muted border-rule pointer-events-none" : "hover:bg-sun"
+              currentPage >= pageCount ? "text-muted border-rule pointer-events-none" : "hover:bg-highlight"
             }`}
           >
             NEXT →

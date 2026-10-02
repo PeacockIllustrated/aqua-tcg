@@ -17,6 +17,8 @@ import { pickHeadlinePrice } from "@/lib/prices/types";
 import type { Card } from "@/lib/types/card";
 import type { Condition, MockCard } from "@/lib/mock/types";
 
+export const metadata = { title: "Get an instant offer" };
+
 type SearchParams = Promise<{
   q?: string;
   set?: string;
@@ -122,7 +124,7 @@ export default async function SearchPage({
         <div className="flex items-center gap-3 flex-wrap">
           <Link
             href="/packs"
-            className="font-display text-[10px] md:text-[11px] tracking-[0.2em] uppercase text-muted hover:text-ocean underline underline-offset-4 decoration-2"
+            className="font-display text-[10px] md:text-[11px] tracking-[0.2em] uppercase text-muted hover:text-brand underline underline-offset-4 decoration-2"
           >
             ← All packs
           </Link>
@@ -147,7 +149,7 @@ export default async function SearchPage({
           </div>
           <Link
             href={`/search${queryString({ q: sp.q, rarity: sp.rarity, supertype: sp.supertype })}`}
-            className="text-[10px] md:text-[11px] font-display tracking-wider uppercase text-muted hover:text-ocean underline underline-offset-4 decoration-2"
+            className="text-[10px] md:text-[11px] font-display tracking-wider uppercase text-muted hover:text-brand underline underline-offset-4 decoration-2"
           >
             clear pack
           </Link>
@@ -155,7 +157,7 @@ export default async function SearchPage({
       ) : null}
 
       <header className="flex flex-col gap-3">
-        <span className="bg-sun text-ink border-2 border-ink w-fit px-2 py-1 font-display text-[10px] tracking-wider rounded-sm">
+        <span className="bg-highlight text-ink border-2 border-ink w-fit px-2 py-1 font-display text-[10px] tracking-wider rounded-sm">
           Sell to us
         </span>
         <h1 className="font-display text-[32px] md:text-[52px] leading-none tracking-tight">
@@ -190,7 +192,7 @@ export default async function SearchPage({
       <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6">
         <aside className="pop-card rounded-md h-fit overflow-hidden">
           <details className="md:contents" open>
-            <summary className="md:hidden cursor-pointer list-none px-4 py-3 flex items-center justify-between border-b-2 border-ink font-display text-[14px] tracking-wider hover:bg-sun/30">
+            <summary className="md:hidden cursor-pointer list-none px-4 py-3 flex items-center justify-between border-b-2 border-ink font-display text-[14px] tracking-wider hover:bg-highlight/30">
               <span>Filters</span>
               <span className="text-[11px] text-muted">tap to toggle</span>
             </summary>
@@ -245,7 +247,7 @@ export default async function SearchPage({
                 {hasActiveFilter ? (
                   <Link
                     href="/search"
-                    className="text-[11px] font-display tracking-wider text-muted hover:text-ocean text-center underline underline-offset-2"
+                    className="text-[11px] font-display tracking-wider text-muted hover:text-brand text-center underline underline-offset-2"
                   >
                     clear all filters
                   </Link>
@@ -256,7 +258,7 @@ export default async function SearchPage({
                 <div className="pt-3 border-t-2 border-ink/10">
                   <Link
                     href="/packs"
-                    className="font-display text-[11px] tracking-wider uppercase text-ink bg-sun border-2 border-ink rounded-md px-3 py-1.5 inline-flex items-center gap-1 hover:bg-ocean"
+                    className="font-display text-[11px] tracking-wider uppercase text-ink bg-highlight border-2 border-ink rounded-md px-3 py-1.5 inline-flex items-center gap-1 hover:bg-brand"
                   >
                     Browse by pack →
                   </Link>
@@ -332,7 +334,7 @@ export default async function SearchPage({
                         {card.rarity ?? "Promo"}
                       </div>
                     </div>
-                    <span className="text-[11px] font-display tracking-wider mt-1 group-hover:text-ocean underline underline-offset-4">
+                    <span className="text-[11px] font-display tracking-wider mt-1 group-hover:text-brand underline underline-offset-4">
                       View offer →
                     </span>
                   </Link>
@@ -352,7 +354,7 @@ export default async function SearchPage({
                   className={`border-2 border-ink rounded-sm px-3 py-1.5 font-display text-[11px] tracking-wider ${
                     currentPage <= 1
                       ? "text-muted border-rule pointer-events-none"
-                      : "hover:bg-sun"
+                      : "hover:bg-highlight"
                   }`}
                 >
                   ← PREV
@@ -363,7 +365,7 @@ export default async function SearchPage({
                   className={`border-2 border-ink rounded-sm px-3 py-1.5 font-display text-[11px] tracking-wider ${
                     currentPage >= pageCount
                       ? "text-muted border-rule pointer-events-none"
-                      : "hover:bg-sun"
+                      : "hover:bg-highlight"
                   }`}
                 >
                   NEXT →

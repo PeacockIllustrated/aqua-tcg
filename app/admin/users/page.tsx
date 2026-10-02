@@ -5,7 +5,7 @@ import { listAdminUsers } from "@/app/_actions/admin";
 import { formatGBP } from "@/lib/mock/mock-offer";
 
 export const metadata = {
-  title: "Users · Aqua TCG admin",
+  title: "Users",
 };
 
 function formatDate(iso: string): string {
@@ -32,21 +32,15 @@ export default async function AdminUsersPage() {
           { label: "Users" },
         ]}
         title="Users"
-        kicker={{ label: "READ-ONLY", tone: "wave" }}
-        subtitle={
-          <>
-            Read-only view of <code className="font-mono">lewis_users</code> with submission
-            totals from <code className="font-mono">lewis_submissions</code>. Role management
-            lands in Phase 2b.
-          </>
-        }
+        kicker={{ label: "ACCOUNTS", tone: "tint" }}
+        subtitle="Everyone with an account — buyers, sellers and staff — with their buylist history at a glance."
       />
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Users · total" value={users.length} />
-        <StatCard label="Sellers" value={sellers.length} />
-        <StatCard label="Admins" value={admins.length} />
-        <StatCard label="£ lifetime committed" value={formatGBP(totalCommitted)} />
+        <StatCard label="Accounts" value={users.length} />
+        <StatCard label="Customers" value={sellers.length} />
+        <StatCard label="Staff" value={admins.length} />
+        <StatCard label="Lifetime buylist £" value={formatGBP(totalCommitted)} />
       </section>
 
       <Table>
@@ -64,13 +58,13 @@ export default async function AdminUsersPage() {
         <TBody>
           {users.length === 0 ? (
             <TR>
-              <TD className="text-center text-secondary py-6">
-                No users yet. The first sign-up creates a row here.
+              <TD colSpan={7} className="text-center text-secondary py-6">
+                No accounts yet. Customers appear here as soon as they sign up.
               </TD>
             </TR>
           ) : (
             users.map((u) => (
-              <TR key={u.id}>
+              <TR key={u.id} id={u.id} className="target:bg-highlight/30">
                 <TD>
                   <div className="font-display text-[13px] tracking-tight">
                     {u.full_name ?? "—"}
@@ -86,11 +80,11 @@ export default async function AdminUsersPage() {
                   <span
                     className={`border-2 border-ink px-1.5 py-0.5 font-display text-[9px] tracking-wider rounded-sm ${
                       u.role === "admin"
-                        ? "bg-ocean text-ink"
+                        ? "bg-brand text-ink"
                         : "bg-paper-strong text-ink"
                     }`}
                   >
-                    {u.role.toUpperCase()}
+                    {u.role === "admin" ? "STAFF" : "CUSTOMER"}
                   </span>
                 </TD>
                 <TD className="text-right tabular-nums font-display">
@@ -112,10 +106,8 @@ export default async function AdminUsersPage() {
       </Table>
 
       <p className="text-[11px] text-muted font-display tracking-wider">
-        Role changes run through Supabase SQL editor for now:{" "}
-        <code className="font-mono bg-paper-strong border border-ink px-1 py-0.5 rounded-sm">
-          update lewis_users set role = &apos;admin&apos; where email = &apos;…&apos;;
-        </code>
+        Need to give a colleague admin access? Ask your site administrator to
+        upgrade their account to staff.
       </p>
     </div>
   );

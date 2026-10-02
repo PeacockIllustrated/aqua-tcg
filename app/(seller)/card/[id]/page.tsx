@@ -7,13 +7,19 @@ import { BinderChipRow } from "@/components/cardbuy/binder/BinderChipRow";
 import { CardImage } from "@/components/cardbuy/CardImage";
 import { EnergyChip, EnergyCostRow } from "@/components/cardbuy/EnergyChip";
 import { Annotation } from "@/components/wireframe/Annotation";
-import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/preview-server";
 import { getCardBinderStatus } from "@/app/_actions/binder";
 import { getMarginConfig } from "@/app/_actions/margins";
 import { getLatestPricesForCard } from "@/app/_actions/prices";
 import { pickHeadlinePrice } from "@/lib/prices/types";
 import { PriceSourceChip } from "@/components/cardbuy/PriceSourceChip";
 import type { Condition, MockCard } from "@/lib/mock/types";
+
+export async function generateMetadata({ params }: { params: Params }) {
+  const { id } = await params;
+  const card = getCardById(id);
+  return { title: card ? `Sell ${card.name} · ${setOf(card)?.name ?? ""}`.replace(/ · $/, "") : "Card" };
+}
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{
@@ -38,24 +44,25 @@ export default async function CardDetailPage({
 
   const set = setOf(card);
 
-  const supabase = await createClient();
-  const [{ data: { user } }, marginConfig, livePrices, binderStatus, mapRow] = await Promise.all([
-    supabase.auth.getUser(),
+  const { supabase, user, preview } = await getViewer();
+  const [marginConfig, livePrices, binderStatus, mapRow] = await Promise.all([
     getMarginConfig(),
     getLatestPricesForCard(id),
     getCardBinderStatus(id),
     supabase
-      .from("lewis_card_tcg_map")
-      .select("card_id")
-      .eq("card_id", id)
-      .maybeSingle(),
+      ? supabase
+          .from("lewis_card_tcg_map")
+          .select("card_id")
+          .eq("card_id", id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   // Admin gate for the "not mapped" hint — avoid leaking internal
   // state to regular sellers. Uses the same role check pattern as
   // admin-only action gates elsewhere.
   let isAdmin = false;
-  if (user) {
+  if (user && supabase) {
     const { data: profile } = await supabase
       .from("lewis_users")
       .select("role")
@@ -63,6 +70,10 @@ export default async function CardDetailPage({
       .maybeSingle();
     isAdmin = (profile as { role?: string } | null)?.role === "admin";
   }
+
+  // Preview visitors can open the binder / offer controls; the actions
+  // answer with a "sign in to save" message instead of writing.
+  const canUseAccountControls = Boolean(user) || preview;
 
   // If the nightly sync has covered this card, override the mock USD
   // baseline with the live TCGplayer market price. Condition
@@ -90,14 +101,14 @@ export default async function CardDetailPage({
   return (
     <div className="max-w-[1200px] mx-auto px-5 md:px-4 py-8 flex flex-col gap-8">
       <nav className="text-[12px] font-display tracking-wider flex items-center gap-3 flex-wrap">
-        <Link href="/packs" className="text-muted hover:text-ocean">
+        <Link href="/packs" className="text-muted hover:text-brand">
           ← ALL PACKS
         </Link>
         <span className="text-rule">/</span>
         {set ? (
           <Link
             href={`/search?set=${set.id}`}
-            className="inline-flex items-center gap-2 bg-paper-strong border-[3px] border-ink rounded-md px-2 py-1 shadow-[3px_3px_0_0_var(--color-ink)] hover:bg-sun transition-colors"
+            className="inline-flex items-center gap-2 bg-paper-strong border-[3px] border-ink rounded-md px-2 py-1 shadow-[3px_3px_0_0_var(--color-ink)] hover:bg-highlight transition-colors"
           >
             {set.symbolUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -152,11 +163,11 @@ export default async function CardDetailPage({
         <div className="flex flex-col gap-8">
           <header className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-display text-[10px] tracking-wider text-sun bg-ink px-2 py-1 rounded-sm">
+              <span className="font-display text-[10px] tracking-wider text-highlight bg-ink px-2 py-1 rounded-sm">
                 We want to buy this
               </span>
               {card.rarity ? (
-                <span className="font-display text-[10px] tracking-wider bg-ocean text-ink border-2 border-ink px-2 py-1 rounded-sm">
+                <span className="font-display text-[10px] tracking-wider bg-brand text-ink border-2 border-ink px-2 py-1 rounded-sm">
                   {card.rarity}
                 </span>
               ) : null}
@@ -215,7 +226,7 @@ export default async function CardDetailPage({
           <BinderChipRow
             cardId={id}
             cardName={card.name}
-            isAuthenticated={Boolean(user)}
+            isAuthenticated={canUseAccountControls}
             initialEntries={binderStatus.entries}
             initialOnWishlist={binderStatus.onWishlist}
           />
@@ -240,7 +251,7 @@ export default async function CardDetailPage({
           <OfferBuilder
             card={liveCard}
             config={marginConfig}
-            isAuthenticated={Boolean(user)}
+            isAuthenticated={canUseAccountControls}
             prefill={{
               variant:
                 sp.prefill_variant === "graded" ? "graded" : undefined,
@@ -271,7 +282,7 @@ export default async function CardDetailPage({
                 {card.abilities.map((a, i) => (
                   <li key={`${a.name}-${i}`} className="pop-card rounded-md p-4 flex flex-col gap-2">
                     <div className="flex items-baseline gap-2">
-                      <span className="font-display text-[10px] tracking-wider bg-sun text-ink border-2 border-ink px-2 py-0.5 rounded-sm">
+                      <span className="font-display text-[10px] tracking-wider bg-highlight text-ink border-2 border-ink px-2 py-0.5 rounded-sm">
                         {a.type}
                       </span>
                       <span className="font-display text-[18px] tracking-tight">{a.name}</span>
@@ -361,7 +372,7 @@ export default async function CardDetailPage({
                 <span
                   key={fmt}
                   className={`border-2 border-ink px-2 py-0.5 rounded-sm ${
-                    status === "Legal" ? "bg-wave text-ink" : "bg-paper-strong text-muted"
+                    status === "Legal" ? "bg-tint text-ink" : "bg-paper-strong text-muted"
                   }`}
                 >
                   {fmt} · {status}

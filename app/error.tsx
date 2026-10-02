@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
-import { Button } from "@/components/ui/Form";
+import { Button, LinkButton } from "@/components/ui/Form";
 
 export default function GlobalError({
   error,
@@ -36,9 +35,7 @@ export default function GlobalError({
         <Button variant="primary" onClick={() => reset()}>
           Try again
         </Button>
-        <Link href="/">
-          <Button variant="secondary">Home</Button>
-        </Link>
+        <LinkButton href="/" variant="secondary">Home</LinkButton>
       </div>
     </section>
   );

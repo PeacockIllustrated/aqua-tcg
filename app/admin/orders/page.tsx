@@ -6,6 +6,8 @@ import { listAdminOrders } from "@/app/_actions/admin-shop";
 import { formatGBP } from "@/lib/mock/mock-offer";
 import type { ShopOrderStatus } from "@/lib/supabase/types";
 
+export const metadata = { title: "Orders" };
+
 export const dynamic = "force-dynamic";
 
 const STATUS_LABELS: Record<ShopOrderStatus, string> = {
@@ -63,7 +65,7 @@ export default async function AdminOrdersPage({
         title="Orders"
         kicker={{
           label: active === "all" ? "ALL" : (STATUS_LABELS[active as ShopOrderStatus] ?? String(active)).toUpperCase(),
-          tone: "ocean",
+          tone: "brand",
         }}
         subtitle="Every shopfront order — payment, pack, ship, done."
         actions={
@@ -79,13 +81,13 @@ export default async function AdminOrdersPage({
         <StatCard
           label="Pending payment"
           value={pendingPaymentCount}
-          tone={pendingPaymentCount > 0 ? "ocean" : "paper"}
+          tone={pendingPaymentCount > 0 ? "brand" : "paper"}
           href={pendingPaymentCount > 0 ? "/admin/orders?status=pending_payment" : undefined}
         />
         <StatCard
           label="To pack"
           value={toPackCount}
-          tone={toPackCount > 0 ? "wave" : "paper"}
+          tone={toPackCount > 0 ? "tint" : "paper"}
           href={toPackCount > 0 ? "/admin/orders?status=paid" : undefined}
         />
       </section>
@@ -133,7 +135,7 @@ export default async function AdminOrdersPage({
           <TBody>
             {rows.map((o) => (
               <TR key={o.id}>
-                <TD className="font-mono text-[11px]">{o.reference}</TD>
+                <TD className="font-mono text-[11px] whitespace-nowrap">{o.reference}</TD>
                 <TD>
                   <div className="text-[12px]">{o.buyer_name}</div>
                   <div className="text-[11px] text-muted">{o.buyer_email}</div>
@@ -144,8 +146,8 @@ export default async function AdminOrdersPage({
                 </TD>
                 <TD className="text-[11px]">
                   {o.payment_method === "stub" ? (
-                    <span className="font-display tracking-wider text-ocean">
-                      STUB
+                    <span className="font-display tracking-wider text-brand">
+                      TEST
                     </span>
                   ) : o.payment_method === "stripe_card" ? (
                     "Card"
@@ -168,7 +170,7 @@ export default async function AdminOrdersPage({
                     {STATUS_LABELS[o.status]}
                   </StatusBadge>
                 </TD>
-                <TD className="text-muted text-[11px] tabular-nums">
+                <TD className="text-muted text-[11px] tabular-nums whitespace-nowrap">
                   {new Date(o.placed_at)
                     .toISOString()
                     .slice(0, 16)
@@ -177,7 +179,7 @@ export default async function AdminOrdersPage({
                 <TD>
                   <Link
                     href={`/admin/orders/${o.reference}`}
-                    className="pop-block rounded-sm bg-paper-strong px-2 py-1 font-display text-[10px] tracking-wider text-ink"
+                    className="pop-block rounded-sm bg-paper-strong px-2 py-1 font-display text-[10px] tracking-wider text-ink whitespace-nowrap"
                   >
                     Open →
                   </Link>
@@ -199,11 +201,11 @@ function StatusBadge({
   children: React.ReactNode;
 }) {
   const tone: Record<ShopOrderStatus, string> = {
-    pending_payment: "bg-ocean",
-    paid: "bg-sun",
-    packing: "bg-sun",
-    shipped: "bg-wave",
-    delivered: "bg-wave",
+    pending_payment: "bg-brand",
+    paid: "bg-highlight",
+    packing: "bg-highlight",
+    shipped: "bg-tint",
+    delivered: "bg-tint",
     refunded: "bg-paper",
     cancelled: "bg-paper",
   };
@@ -213,7 +215,7 @@ function StatusBadge({
       : "text-ink";
   return (
     <span
-      className={`border-2 border-ink rounded-sm px-1.5 py-0.5 font-display text-[10px] tracking-wider ${tone[status]} ${textColor}`}
+      className={`border-2 border-ink rounded-sm px-1.5 py-0.5 font-display text-[10px] tracking-wider whitespace-nowrap ${tone[status]} ${textColor}`}
     >
       {children}
     </span>

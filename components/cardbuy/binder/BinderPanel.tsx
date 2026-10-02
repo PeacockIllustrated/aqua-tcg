@@ -15,6 +15,7 @@ import { CardImage } from "@/components/cardbuy/CardImage";
 import { GradedCardScanner } from "@/components/cardbuy/binder/GradedCardScanner";
 import { PacksView } from "@/components/cardbuy/binder/PacksView";
 import type { BinderPackSummary } from "@/app/_actions/binder";
+import { unwrapAction } from "@/lib/mock/preview-actions";
 import {
   addBinderEntry,
   removeBinderEntry,
@@ -212,7 +213,7 @@ const TYPE_COLOR: Record<string, string> = {
   Grass: "bg-[#9fd26a]",
   Fire: "bg-[#ff9a4a]",
   Water: "bg-[#6ec5ff]",
-  Lightning: "bg-[#f69b26]",
+  Lightning: "bg-[#f5c832]",
   Psychic: "bg-[#d38cff]",
   Fighting: "bg-[#d98855]",
   Colorless: "bg-[#efe6d0]",
@@ -602,7 +603,7 @@ function ViewTabs({
             className={`rounded-sm border-[3px] border-ink shadow-[3px_3px_0_0_var(--color-ink)] px-3 py-1.5 font-display text-[11px] tracking-[0.22em] uppercase ${
               isActive
                 ? "bg-ink text-paper-strong"
-                : "bg-paper-strong text-ink hover:bg-sun"
+                : "bg-paper-strong text-ink hover:bg-highlight"
             }`}
           >
             {opt.label}
@@ -700,7 +701,7 @@ function RegionsBinder({
         disabled={flip !== null}
       />
 
-      <div className="pop-static rounded-md bg-wave p-2 md:p-2.5 relative z-[1]">
+      <div className="pop-static rounded-md bg-tint p-2 md:p-2.5 relative z-[1]">
         <div className="grid grid-cols-1 md:grid-cols-[1fr_72px_1.45fr] rounded-sm overflow-hidden border-[2px] border-ink">
           {/* ─── LEFT PAGE · info pane ───────────────────────────── */}
           {/* `min-w-0` keeps this column locked to its grid allocation
@@ -912,7 +913,7 @@ function RegionTabs({
             className={`shrink-0 rounded-sm border-[3px] border-ink shadow-[3px_3px_0_0_var(--color-ink)] px-2.5 py-1 font-display text-[10px] tracking-[0.18em] uppercase disabled:opacity-50 ${
               isActive
                 ? "bg-ink text-paper-strong"
-                : "bg-paper-strong text-ink hover:bg-sun"
+                : "bg-paper-strong text-ink hover:bg-highlight"
             }`}
           >
             {r.label}
@@ -981,7 +982,7 @@ function BottomShelfPanel({
      * (info pane fixed height so there's no layout shift when a card
      * is hovered or locked).
      */
-    <div className="pop-static rounded-md bg-wave p-2 md:p-2.5 relative">
+    <div className="pop-static rounded-md bg-tint p-2 md:p-2.5 relative">
       <div className="grid grid-cols-1 md:grid-cols-[1fr_72px_1.75fr] rounded-sm overflow-hidden border-[2px] border-ink">
         {/* Detail pane — mirrors the main binder's info pane. Height
             is fixed regardless of selection state so hovering a shelf
@@ -1148,14 +1149,14 @@ function ShelfDetail({
       : entry.condition ?? "";
   const supertypeTone =
     entry.supertype === "Energy"
-      ? "bg-sun"
+      ? "bg-highlight"
       : entry.supertype === "Trainer"
-        ? "bg-ocean"
+        ? "bg-brand"
         : "bg-paper";
   return (
     <div className="flex flex-col h-full relative">
       {locked ? (
-        <span className="absolute top-0 right-0 pop-card rounded-sm bg-sun px-2 py-0.5 font-display text-[9px] tracking-[0.2em] text-ink z-10">
+        <span className="absolute top-0 right-0 pop-card rounded-sm bg-highlight px-2 py-0.5 font-display text-[9px] tracking-[0.2em] text-ink z-10">
           Locked · esc
         </span>
       ) : null}
@@ -1244,14 +1245,14 @@ function ShelfRailCard({
 }) {
   const ring = active
     ? locked
-      ? "ring-[3px] ring-sun"
+      ? "ring-[3px] ring-highlight"
       : "ring-[3px] ring-ink/50"
     : "";
   const supertypeChipBg =
     entry.supertype === "Energy"
-      ? "bg-sun"
+      ? "bg-highlight"
       : entry.supertype === "Trainer"
-        ? "bg-ocean"
+        ? "bg-brand"
         : "bg-paper-strong";
   return (
     <li className="min-w-0">
@@ -1292,7 +1293,7 @@ function ShelfRailCard({
           {entry.supertype === "Energy" ? "E" : entry.supertype === "Trainer" ? "T" : "?"}
         </span>
         {entry.quantity > 1 ? (
-          <span className="absolute -bottom-1 -right-1 z-[4] bg-wave border-2 border-ink px-1.5 py-0.5 font-display text-[9px] tracking-wider rotate-[3deg] pointer-events-none tabular-nums rounded-sm leading-none">
+          <span className="absolute -bottom-1 -right-1 z-[4] bg-tint border-2 border-ink px-1.5 py-0.5 font-display text-[9px] tracking-wider rotate-[3deg] pointer-events-none tabular-nums rounded-sm leading-none">
             ×{entry.quantity}
           </span>
         ) : null}
@@ -1402,7 +1403,7 @@ function EmptyState({
         </div>
         <div className="mt-3 h-4 border-[3px] border-ink bg-paper rounded-sm overflow-hidden">
           <div
-            className="h-full bg-ocean border-r-[3px] border-ink"
+            className="h-full bg-brand border-r-[3px] border-ink"
             style={{ width: `${Math.min(100, pct)}%` }}
           />
         </div>
@@ -1438,7 +1439,7 @@ function SlotDetails({
   return (
     <div className="flex flex-col h-full relative">
       {locked ? (
-        <span className="absolute top-0 right-0 pop-card rounded-sm bg-sun px-2 py-0.5 font-display text-[9px] tracking-[0.2em] text-ink z-10">
+        <span className="absolute top-0 right-0 pop-card rounded-sm bg-highlight px-2 py-0.5 font-display text-[9px] tracking-[0.2em] text-ink z-10">
           Locked · esc
         </span>
       ) : null}
@@ -1720,7 +1721,7 @@ function OwnedCardRail({
                       represents the grail entry, not every card. */}
                   {isThisGrail ? (
                     <span
-                      className="absolute -top-2 -right-2 z-[5] w-7 h-7 grid place-items-center rounded-full bg-sun border-2 border-ink font-display text-[13px] pointer-events-none"
+                      className="absolute -top-2 -right-2 z-[5] w-7 h-7 grid place-items-center rounded-full bg-highlight border-2 border-ink font-display text-[13px] pointer-events-none"
                       aria-label="Grail"
                     >
                       ★
@@ -1839,13 +1840,13 @@ function OwnedDetails({ owned }: { owned: BinderOwnedData }) {
     start(async () => {
       try {
         if (hasGrail && grailEntry) {
-          await setGrail(grailEntry.id, false);
+          unwrapAction(await setGrail(grailEntry.id, false));
         } else {
           // No grail set — apply to the first entry (most-recently-first
           // if sorted that way by the server).
           const target = entries[0];
           if (!target) return;
-          await setGrail(target.id, true);
+          unwrapAction(await setGrail(target.id, true));
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to set grail");
@@ -1857,7 +1858,7 @@ function OwnedDetails({ owned }: { owned: BinderOwnedData }) {
     setError(null);
     start(async () => {
       try {
-        await removeBinderEntry(entryId);
+        unwrapAction(await removeBinderEntry(entryId));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to remove");
       }
@@ -1890,14 +1891,16 @@ function OwnedDetails({ owned }: { owned: BinderOwnedData }) {
     setError(null);
     start(async () => {
       try {
-        await addBinderEntry({
-          cardId: activeCard.id,
-          variant: input.variant,
-          condition: input.condition,
-          gradingCompany: input.gradingCompany,
-          grade: input.grade,
-          quantity: input.quantity,
-        });
+        unwrapAction(
+          await addBinderEntry({
+            cardId: activeCard.id,
+            variant: input.variant,
+            condition: input.condition,
+            gradingCompany: input.gradingCompany,
+            grade: input.grade,
+            quantity: input.quantity,
+          }),
+        );
         setAddOpen(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to add");
@@ -1973,7 +1976,7 @@ function OwnedDetails({ owned }: { owned: BinderOwnedData }) {
             >
               {e.is_grail ? (
                 <span
-                  className="w-5 h-5 grid place-items-center rounded-full bg-sun border-2 border-ink font-display text-[10px] shrink-0"
+                  className="w-5 h-5 grid place-items-center rounded-full bg-highlight border-2 border-ink font-display text-[10px] shrink-0"
                   title="Grail"
                 >
                   ★
@@ -1988,7 +1991,7 @@ function OwnedDetails({ owned }: { owned: BinderOwnedData }) {
                 {e.setName}
               </span>
               {e.quantity > 1 ? (
-                <span className="ml-auto font-display text-[10px] tabular-nums text-wave">
+                <span className="ml-auto font-display text-[10px] tabular-nums text-tint">
                   ×{e.quantity}
                 </span>
               ) : null}
@@ -2028,7 +2031,7 @@ function OwnedDetails({ owned }: { owned: BinderOwnedData }) {
             Add copy
           </ActionButton>
           <ActionButton
-            tone="ocean"
+            tone="brand"
             icon="◉"
             title="Scan a graded slab with your camera"
             onClick={() => setScannerOpen(true)}
@@ -2037,7 +2040,7 @@ function OwnedDetails({ owned }: { owned: BinderOwnedData }) {
             Scan graded
           </ActionButton>
           <ActionButton
-            tone="sun"
+            tone="highlight"
             icon="★"
             onClick={handleToggleGrail}
             disabled={pending || entries.length === 0}
@@ -2045,7 +2048,7 @@ function OwnedDetails({ owned }: { owned: BinderOwnedData }) {
             {hasGrail ? "Unmark Grail" : "Mark Grail"}
           </ActionButton>
           <ActionButton
-            tone="wave"
+            tone="tint"
             icon="→"
             onClick={handleSell}
             disabled={pending}
@@ -2131,7 +2134,7 @@ function MissingDetails({
     setOnWishlist(next);
     start(async () => {
       try {
-        await toggleWishlist(wishlistCardId);
+        unwrapAction(await toggleWishlist(wishlistCardId));
       } catch (e) {
         setOnWishlist(!next);
         setError(e instanceof Error ? e.message : "Failed to update wishlist");
@@ -2149,7 +2152,7 @@ function MissingDetails({
       if (parsed !== null && (isNaN(parsed) || parsed < 0)) return;
       start(async () => {
         try {
-          await setWishlistTarget(wishlistCardId, parsed);
+          unwrapAction(await setWishlistTarget(wishlistCardId, parsed));
         } catch (e) {
           setError(
             e instanceof Error ? e.message : "Failed to save target price",
@@ -2217,7 +2220,7 @@ function MissingDetails({
                 <li key={l.id}>
                   <Link
                     href={l.href}
-                    className="pop-card rounded-sm bg-paper-strong px-2 py-1.5 flex items-center gap-2 hover:bg-ocean/30"
+                    className="pop-card rounded-sm bg-paper-strong px-2 py-1.5 flex items-center gap-2 hover:bg-brand/30"
                   >
                     <div className="relative w-8 h-11 shrink-0 rounded-sm border-2 border-ink overflow-hidden bg-paper">
                       {l.imageSmall ? (
@@ -2248,7 +2251,7 @@ function MissingDetails({
             </ul>
             <Link
               href={`/shop?q=${encodeURIComponent(dexName)}`}
-              className="mt-2 inline-block font-display text-[10px] tracking-[0.2em] text-ink/70 hover:text-ocean underline underline-offset-2 decoration-2"
+              className="mt-2 inline-block font-display text-[10px] tracking-[0.2em] text-ink/70 hover:text-brand underline underline-offset-2 decoration-2"
             >
               See all prints →
             </Link>
@@ -2283,7 +2286,7 @@ function MissingDetails({
           onClick={handleToggle}
           disabled={!wishlistCardId || pending}
           className={`w-full pop-block rounded-sm px-3 py-2 font-display text-[11px] tracking-wider text-ink flex items-center justify-between gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-            onWishlist ? "bg-sun" : "bg-paper-strong"
+            onWishlist ? "bg-highlight" : "bg-paper-strong"
           }`}
         >
           <span className="flex items-center gap-2">
@@ -2341,19 +2344,19 @@ function ActionButton({
   disabled,
 }: {
   children: React.ReactNode;
-  tone: "paper" | "ocean" | "wave" | "sun";
+  tone: "paper" | "brand" | "tint" | "highlight";
   icon?: string;
   title?: string;
   onClick?: () => void;
   disabled?: boolean;
 }) {
   const bg =
-    tone === "ocean"
-      ? "bg-ocean"
-      : tone === "wave"
-        ? "bg-wave"
-        : tone === "sun"
-          ? "bg-sun"
+    tone === "brand"
+      ? "bg-brand"
+      : tone === "tint"
+        ? "bg-tint"
+        : tone === "highlight"
+          ? "bg-highlight"
           : "bg-paper-strong";
   return (
     <button
@@ -2452,7 +2455,7 @@ function AddEntryForm({
                 setGradedDupeConfirm(false);
               }}
               className={`border-2 border-ink rounded-sm px-2 py-0.5 font-display text-[10px] tracking-wider ${
-                variant === v ? "bg-sun" : "bg-paper-strong"
+                variant === v ? "bg-highlight" : "bg-paper-strong"
               }`}
             >
               {v === "raw" ? "Raw" : "Graded"}
@@ -2533,7 +2536,7 @@ function AddEntryForm({
 
       {/* Graded-duplicate confirmation */}
       {dupeExists && gradedDupeConfirm ? (
-        <div className="text-[11px] text-ink bg-sun border-2 border-ink rounded-sm px-2 py-1.5">
+        <div className="text-[11px] text-ink bg-highlight border-2 border-ink rounded-sm px-2 py-1.5">
           You already have a {gradingCompany} {grade} copy. Click{" "}
           <strong>Add</strong> again to confirm adding another.
         </div>
@@ -2545,7 +2548,7 @@ function AddEntryForm({
           type="button"
           onClick={handleSubmit}
           disabled={pending}
-          className="pop-block rounded-sm bg-wave px-3 py-1 font-display text-[11px] tracking-wider text-ink disabled:opacity-50"
+          className="pop-block rounded-sm bg-tint px-3 py-1 font-display text-[11px] tracking-wider text-ink disabled:opacity-50"
         >
           {pending ? "Adding…" : "Add"}
         </button>
@@ -2586,7 +2589,7 @@ function DexSlot({
 
   const activeRing = isActive
     ? isLocked
-      ? "ring-[3px] ring-sun"
+      ? "ring-[3px] ring-highlight"
       : "ring-[3px] ring-ink/50"
     : "";
 
@@ -2673,7 +2676,7 @@ function OwnedSlotVisual({
           {owned.card.name}
         </div>
         {multi ? (
-          <span className="absolute right-1 top-1 z-[4] bg-wave border-2 border-ink px-1.5 py-0.5 font-display text-[9px] tracking-wider pointer-events-none tabular-nums rounded-sm leading-none">
+          <span className="absolute right-1 top-1 z-[4] bg-tint border-2 border-ink px-1.5 py-0.5 font-display text-[9px] tracking-wider pointer-events-none tabular-nums rounded-sm leading-none">
             +{owned.entries.length > 1 ? owned.entries.length : firstEntry.quantity}
           </span>
         ) : null}
@@ -2688,7 +2691,7 @@ function OwnedSlotVisual({
         </span>
       ) : null}
       {grailed ? (
-        <span className="absolute top-1 right-1 z-[5] w-6 h-6 grid place-items-center rounded-full bg-sun border-2 border-ink font-display text-[12px] pointer-events-none">
+        <span className="absolute top-1 right-1 z-[5] w-6 h-6 grid place-items-center rounded-full bg-highlight border-2 border-ink font-display text-[12px] pointer-events-none">
           ★
         </span>
       ) : null}
@@ -2732,13 +2735,13 @@ function MissingSlotVisual({
           {name}
         </div>
       </div>
-      {/* Wishlist heart — ocean to differentiate from the gold Grail
+      {/* Wishlist heart — brand to differentiate from the gold Grail
           star on owned slots. Positioned INSIDE the slot bounds so it
           can't overlap the +N multi-copy chip on the slot above in
           the grid. */}
       {wishlisted ? (
         <span
-          className="absolute top-1 right-1 z-[4] w-5 h-5 grid place-items-center rounded-full bg-ocean border-2 border-ink font-display text-[10px] leading-none rotate-[8deg] pointer-events-none"
+          className="absolute top-1 right-1 z-[4] w-5 h-5 grid place-items-center rounded-full bg-brand border-2 border-ink font-display text-[10px] leading-none rotate-[8deg] pointer-events-none"
           aria-label="On wishlist"
         >
           ♥

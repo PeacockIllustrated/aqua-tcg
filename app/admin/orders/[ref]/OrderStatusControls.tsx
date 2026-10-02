@@ -31,12 +31,22 @@ const LABELS: Record<ShopOrderStatus, string> = {
   cancelled: "",
 };
 
+const STATUS_NAMES: Record<ShopOrderStatus, string> = {
+  pending_payment: "pending payment",
+  paid: "paid",
+  packing: "packing",
+  shipped: "shipped",
+  delivered: "delivered",
+  refunded: "refunded",
+  cancelled: "cancelled",
+};
+
 const TONES: Record<ShopOrderStatus, string> = {
-  pending_payment: "bg-sun",
-  paid: "bg-sun",
-  packing: "bg-wave",
-  shipped: "bg-wave",
-  delivered: "bg-ocean",
+  pending_payment: "bg-highlight",
+  paid: "bg-highlight",
+  packing: "bg-tint",
+  shipped: "bg-tint",
+  delivered: "bg-brand",
   refunded: "bg-paper-strong",
   cancelled: "bg-paper-strong",
 };
@@ -55,23 +65,33 @@ export function OrderStatusControls({
   binderEntriesCreatedAt: string | null;
 }) {
   const [pending, start] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<ShopOrderStatus>(currentStatus);
+  const [notice, setNotice] = useState<{ tone: "info" | "error"; text: string } | null>(
+    null,
+  );
   const [trackingInput, setTrackingInput] = useState(currentTracking ?? "");
 
-  const allowed = NEXT_STEPS[currentStatus];
+  const allowed = NEXT_STEPS[status];
 
   const handleTransition = (target: ShopOrderStatus) => {
     if (pending) return;
-    setError(null);
+    setNotice(null);
     start(async () => {
-      try {
-        await updateOrderStatus(orderId, target, {
-          trackingNumber:
-            target === "shipped" ? trackingInput || undefined : undefined,
-        });
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to update status.");
+      const res = await updateOrderStatus(orderId, target, {
+        trackingNumber:
+          target === "shipped" ? trackingInput || undefined : undefined,
+      });
+      if (res.ok) {
+        setStatus(target);
+        return;
       }
+      if (res.preview) {
+        // Preview: show the next state locally, but say it wasn't saved.
+        setStatus(target);
+        setNotice({ tone: "info", text: res.error });
+        return;
+      }
+      setNotice({ tone: "error", text: res.error });
     });
   };
 
@@ -79,7 +99,8 @@ export function OrderStatusControls({
     <section className="pop-card rounded-md p-4 flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-2">
         <div className="font-display text-[10px] tracking-[0.25em] text-muted">
-          Transition
+          Next step · currently{" "}
+          <span className="text-ink">{STATUS_NAMES[status]}</span>
         </div>
         {pending ? (
           <span className="font-display text-[10px] tracking-wider text-muted">
@@ -88,7 +109,7 @@ export function OrderStatusControls({
         ) : null}
       </div>
 
-      {currentStatus === "packing" || currentStatus === "paid" ? (
+      {status === "packing" || status === "paid" ? (
         <label className="flex items-center gap-2 flex-wrap">
           <span className="font-display text-[10px] tracking-[0.2em] text-muted shrink-0">
             Tracking
@@ -106,7 +127,7 @@ export function OrderStatusControls({
       <div className="flex gap-2 flex-wrap">
         {allowed.length === 0 ? (
           <span className="text-[12px] text-muted">
-            This order is in a terminal state.
+            This order is closed — no further steps.
           </span>
         ) : (
           allowed.map((target) => (
@@ -119,17 +140,14 @@ export function OrderStatusControls({
                 target === "cancelled" ? "bg-paper-strong" : TONES[target]
               }`}
             >
-              {target === "cancelled" ? "Cancel order" : LABELS[currentStatus]}
-              {target === "cancelled" || target === LABELS[currentStatus]
-                ? ""
-                : ` · ${target}`}
+              {target === "cancelled" ? "Cancel order" : LABELS[status]}
             </button>
           ))
         )}
       </div>
 
-      {currentStatus === "shipped" && addToBinderOptIn ? (
-        <p className="text-[11px] text-wave font-display tracking-wider">
+      {status === "shipped" && addToBinderOptIn ? (
+        <p className="text-[11px] text-tint font-display tracking-wider">
           On delivered, we&rsquo;ll auto-add these items to the buyer&rsquo;s
           binder.
         </p>
@@ -140,12 +158,16 @@ export function OrderStatusControls({
         </p>
       ) : null}
 
-      {error ? (
+      {notice ? (
         <div
-          role="alert"
-          className="text-[11px] text-warn bg-warn/10 border-2 border-warn rounded-sm px-2 py-1"
+          role={notice.tone === "error" ? "alert" : "status"}
+          className={`text-[12px] rounded-sm px-2 py-1 border-2 ${
+            notice.tone === "error"
+              ? "text-warn bg-warn/10 border-warn"
+              : "text-ink bg-highlight/30 border-ink"
+          }`}
         >
-          {error}
+          {notice.text}
         </div>
       ) : null}
     </section>

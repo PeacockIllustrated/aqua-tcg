@@ -1,120 +1,36 @@
-import Link from "next/link";
-import Image from "next/image";
-import { createClient } from "@/lib/supabase/server";
-import { signOut } from "@/app/_actions/auth";
 import { WaveDivider } from "@/components/cardbuy/WaveDivider";
+import { SiteNav } from "@/components/cardbuy/SiteNav";
+import { brand } from "@/lib/brand";
+import { previewMode } from "@/lib/preview";
+import { getViewer } from "@/lib/preview-server";
 
+/**
+ * Customer header — server wrapper. Resolves who's signed in (and
+ * whether they're an admin), then hands plain props to the client
+ * <SiteNav />. In preview mode the Admin link shows for everyone so a
+ * prospect can find the back office.
+ */
 export async function SellerNav() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getViewer();
 
-  let role: "seller" | "admin" | null = null;
-  if (user) {
+  let isAdmin = false;
+  if (user && supabase) {
     const { data } = await supabase
       .from("lewis_users")
       .select("role")
       .eq("id", user.id)
       .maybeSingle();
-    role = ((data as { role?: "seller" | "admin" } | null)?.role ?? "seller");
+    isAdmin = (data as { role?: string } | null)?.role === "admin";
   }
 
   return (
     <header className="border-b-[3px] border-ink bg-paper-strong sticky top-0 z-30">
-      <div className="max-w-[1300px] mx-auto px-3 md:px-4 py-2.5 md:py-3 flex items-center justify-between gap-2 md:gap-6">
-        <Link href="/" className="flex items-center gap-2 shrink-0">
-          <Image
-            src="/aqua-tcg.svg"
-            alt=""
-            width={30}
-            height={32}
-            priority
-            className="w-[26px] h-[28px] md:w-[30px] md:h-[32px]"
-          />
-          <span className="font-display text-[18px] md:text-[24px] tracking-tight leading-none">
-            <span className="text-ocean">Aqua</span>
-            <span className="text-sun">&nbsp;TCG</span>
-          </span>
-          <span className="hidden sm:inline-block bg-ocean text-paper-strong border-2 border-ink px-1.5 py-0.5 text-[9px] font-display tracking-wider rotate-[-2deg]">
-            BETA
-          </span>
-        </Link>
-        <nav className="flex items-center gap-0.5 md:gap-1 font-display text-[11px] md:text-[12px] tracking-wider min-w-0">
-          <NavLink href="/shop" tone="ocean">Shop</NavLink>
-          <NavLink href="/packs" tone="sun">Sell</NavLink>
-          <NavLink href="/binder" tone="wave" hideOnNarrow>Binder</NavLink>
-          <NavLink href="/submission" tone="wave" hideOnNarrow>
-            <span className="md:hidden">Cart</span>
-            <span className="hidden md:inline">My&nbsp;sub</span>
-          </NavLink>
-          <NavLink href="/shop/cart" tone="ocean">Basket</NavLink>
-
-          {user ? (
-            <div className="hidden sm:flex items-center gap-2 shrink-0 ml-1 md:ml-2 pl-2 md:pl-3 border-l-2 border-ink/15">
-              <Link
-                href="/settings"
-                className="font-display text-[10px] text-muted tabular-nums truncate max-w-[140px] hover:text-ink"
-                title={user.email ?? ""}
-              >
-                {user.email}
-              </Link>
-              <form action={signOut}>
-                <button
-                  type="submit"
-                  className="font-display text-[10px] tracking-wider text-ink underline underline-offset-4 decoration-2 hover:text-ocean"
-                >
-                  Sign out
-                </button>
-              </form>
-            </div>
-          ) : (
-            <Link
-              href="/login"
-              className="hidden sm:inline-flex shrink-0 ml-1 md:ml-2 px-2 py-1 border-2 border-ink rounded-sm bg-sun text-ink font-display text-[10px] md:text-[11px] tracking-wider hover:bg-ocean"
-            >
-              Sign in
-            </Link>
-          )}
-
-          {role === "admin" ? (
-            <Link
-              href="/admin"
-              className="hidden md:inline-flex shrink-0 ml-1 md:ml-2 px-2 py-1 text-[11px] text-muted hover:text-ink"
-            >
-              Admin
-            </Link>
-          ) : null}
-        </nav>
-      </div>
-      <WaveDivider fill="var(--color-ocean)" height={10} />
+      <SiteNav
+        email={user?.email ?? null}
+        showAdmin={isAdmin || previewMode}
+        demoMode={brand.demoMode}
+      />
+      <WaveDivider fill="var(--color-brand)" height={10} />
     </header>
-  );
-}
-
-function NavLink({
-  href,
-  children,
-  tone,
-  hideOnNarrow,
-}: {
-  href: string;
-  children: React.ReactNode;
-  tone: "ocean" | "wave" | "sun";
-  hideOnNarrow?: boolean;
-}) {
-  const hover =
-    tone === "ocean"
-      ? "hover:bg-ocean"
-      : tone === "wave"
-        ? "hover:bg-wave"
-        : "hover:bg-sun";
-  return (
-    <Link
-      href={href}
-      className={`shrink-0 px-2 md:px-3 py-1.5 border-2 border-transparent hover:border-ink transition-colors duration-100 ${hover} ${hideOnNarrow ? "hidden sm:inline-flex" : ""}`}
-    >
-      {children}
-    </Link>
   );
 }

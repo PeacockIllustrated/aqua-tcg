@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { hasDatabase } from "@/lib/preview";
 
 /**
  * Magic-link callback. Supabase redirects the user here with a one-shot
@@ -10,6 +11,10 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const next = url.searchParams.get("next") ?? "/submission";
+
+  if (!hasDatabase) {
+    return NextResponse.redirect(new URL("/login", url.origin));
+  }
 
   if (code) {
     const supabase = await createClient();

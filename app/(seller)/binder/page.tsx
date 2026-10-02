@@ -12,17 +12,26 @@ import { getCardById, getSetById } from "@/lib/fixtures/cards";
 import type { Card } from "@/lib/types/card";
 import { summarisePacks } from "@/lib/binder/packs";
 import { NATIONAL_DEX } from "@/lib/fixtures/pokedex";
-import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/preview-server";
+import { PreviewBanner } from "@/components/preview/PreviewBanner";
+import {
+  MOCK_BINDER_ENTRIES,
+  MOCK_WISHLIST_ENTRIES,
+  PREVIEW_PROFILE,
+} from "@/lib/mock/mock-customer";
 import type {
   LewisBinderEntry,
   LewisWishlistEntry,
 } from "@/lib/supabase/types";
 import type { MockListing } from "@/lib/mock/types";
 
+export const metadata = { title: "My binder" };
+
 /**
  * `/binder` · the logged-in user's Pokédex binder (Slice A).
  *
- * Signed-out users are redirected to /login. Signed-in users get a Gen-1
+ * Signed-out users are redirected to /login, or (preview mode) shown a
+ * sample collection under a preview banner. Signed-in users get a Gen-1
  * dex-ordered binder populated from `lewis_binder_entries` +
  * `lewis_wishlist_entries`. Shop listings shown on missing slots still
  * come from mock listings (pricing engine is Phase 3).
@@ -39,44 +48,52 @@ export default async function BinderPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/binder");
+  const { supabase, user, preview } = await getViewer();
 
-  // Profile — display name used in the header. Falls back to email local-part.
-  const { data: profile } = await supabase
-    .from("lewis_users")
-    .select("full_name, email")
-    .eq("id", user.id)
-    .maybeSingle();
-  const displayName =
-    profile?.full_name ??
-    profile?.email?.split("@")[0] ??
-    user.email?.split("@")[0] ??
-    "Collector";
+  let displayName: string;
+  let binderEntries: LewisBinderEntry[];
+  let wishlistEntries: LewisWishlistEntry[];
 
-  // Read the user's binder + wishlist in parallel.
-  const [binderRes, wishlistRes] = await Promise.all([
-    supabase
-      .from("lewis_binder_entries")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("lewis_wishlist_entries")
-      .select("*")
-      .eq("user_id", user.id),
-  ]);
-  if (binderRes.error) {
-    throw new Error(`Failed to load binder: ${binderRes.error.message}`);
+  if (preview) {
+    displayName = PREVIEW_PROFILE.full_name ?? "Collector";
+    binderEntries = MOCK_BINDER_ENTRIES;
+    wishlistEntries = MOCK_WISHLIST_ENTRIES;
+  } else {
+    if (!user || !supabase) redirect("/login?next=/binder");
+
+    // Profile — display name used in the header. Falls back to email local-part.
+    const { data: profile } = await supabase
+      .from("lewis_users")
+      .select("full_name, email")
+      .eq("id", user.id)
+      .maybeSingle();
+    displayName =
+      profile?.full_name ??
+      profile?.email?.split("@")[0] ??
+      user.email?.split("@")[0] ??
+      "Collector";
+
+    // Read the user's binder + wishlist in parallel.
+    const [binderRes, wishlistRes] = await Promise.all([
+      supabase
+        .from("lewis_binder_entries")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("lewis_wishlist_entries")
+        .select("*")
+        .eq("user_id", user.id),
+    ]);
+    if (binderRes.error) {
+      throw new Error(`Failed to load binder: ${binderRes.error.message}`);
+    }
+    if (wishlistRes.error) {
+      throw new Error(`Failed to load wishlist: ${wishlistRes.error.message}`);
+    }
+    binderEntries = binderRes.data ?? [];
+    wishlistEntries = wishlistRes.data ?? [];
   }
-  if (wishlistRes.error) {
-    throw new Error(`Failed to load wishlist: ${wishlistRes.error.message}`);
-  }
-  const binderEntries: LewisBinderEntry[] = binderRes.data ?? [];
-  const wishlistEntries: LewisWishlistEntry[] = wishlistRes.data ?? [];
 
   // Group binder entries into two buckets:
   //   • ownedByDex — Pokémon cards with a national-dex slot
@@ -294,6 +311,8 @@ export default async function BinderPage({
   totalPortfolioGbp = Math.round(totalPortfolioGbp);
 
   return (
+    <>
+    {preview ? <PreviewBanner next="/binder" /> : null}
     <main className="max-w-[1200px] mx-auto px-4 md:px-6 py-6 md:py-10">
       <PortfolioHeader
         displayName={displayName}
@@ -311,6 +330,7 @@ export default async function BinderPage({
         />
       </div>
     </main>
+    </>
   );
 }
 

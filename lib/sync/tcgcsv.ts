@@ -46,7 +46,7 @@ export type TcgcsvPriceRow = {
 
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url, {
-    headers: { accept: "application/json", "user-agent": "cardbuy-sync/1.0" },
+    headers: { accept: "application/json", "user-agent": "tcg-shop-sync/1.0" },
     // Disable Next's fetch cache — we always want the latest from TCGCSV.
     cache: "no-store",
   });

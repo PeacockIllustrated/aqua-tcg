@@ -1,7 +1,9 @@
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
-import { getMarginConfig, getLiveMarginRow } from "@/app/_actions/margins";
+import { getAdminMarginConfig, getLiveMarginRow } from "@/app/_actions/margins";
 import { PricingForm } from "./PricingForm";
 import { FxSyncButton } from "./FxSyncButton";
+
+export const metadata = { title: "Pricing" };
 
 /**
  * Server wrapper — fetches the live margin config (and the raw row,
@@ -9,9 +11,11 @@ import { FxSyncButton } from "./FxSyncButton";
  *
  * Admin gating happens in `middleware.ts`; we don't re-check here.
  */
+export const dynamic = "force-dynamic";
+
 export default async function AdminPricingPage() {
   const [config, row] = await Promise.all([
-    getMarginConfig(),
+    getAdminMarginConfig(),
     getLiveMarginRow(),
   ]);
 
@@ -24,8 +28,8 @@ export default async function AdminPricingPage() {
           { label: "Pricing" },
         ]}
         title="Pricing & margins"
-        kicker={{ label: "CONTROL PANEL", tone: "sun" }}
-        subtitle="The dials behind every buylist quote — global margin, FX, per-condition and per-set multipliers. Saves snapshot into audit history."
+        kicker={{ label: "CONTROL PANEL", tone: "highlight" }}
+        subtitle="The dials behind every buylist quote — global margin, FX, per-condition and per-set multipliers. Every save is kept in the change history."
       />
       <FxSyncButton
         lastUpdatedAt={row?.fx_rate_updated_at ?? null}

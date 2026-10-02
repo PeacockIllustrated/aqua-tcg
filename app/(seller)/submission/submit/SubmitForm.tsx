@@ -4,14 +4,18 @@ import { useState, useTransition } from "react";
 import { Annotation } from "@/components/wireframe/Annotation";
 import { Button, Input, Select, Field } from "@/components/ui/Form";
 import { submitSubmission } from "@/app/_actions/submission";
+import { unwrapAction } from "@/lib/mock/preview-actions";
 import type { LewisUser, PayoutMethod } from "@/lib/supabase/types";
 
 type Props = {
   profile: LewisUser | null;
   defaultEmail: string;
+  /** Signed-out demo: submitting writes nothing and lands on a sample
+   *  confirmation page. */
+  preview?: boolean;
 };
 
-export function SubmitForm({ profile, defaultEmail }: Props) {
+export function SubmitForm({ profile, defaultEmail, preview = false }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [payout, setPayout] = useState<PayoutMethod>(
@@ -37,7 +41,7 @@ export function SubmitForm({ profile, defaultEmail }: Props) {
     };
     startTransition(async () => {
       try {
-        await submitSubmission(input);
+        unwrapAction(await submitSubmission(input));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to submit");
       }
@@ -101,7 +105,7 @@ export function SubmitForm({ profile, defaultEmail }: Props) {
             className={`px-3 py-1.5 font-display text-[11px] tracking-wider uppercase ${
               payout === "paypal"
                 ? "bg-ink text-paper-strong"
-                : "bg-paper-strong text-ink hover:bg-sun"
+                : "bg-paper-strong text-ink hover:bg-highlight"
             }`}
           >
             PayPal cash
@@ -112,7 +116,7 @@ export function SubmitForm({ profile, defaultEmail }: Props) {
             className={`px-3 py-1.5 font-display text-[11px] tracking-wider uppercase border-l-[3px] border-ink ${
               payout === "store_credit"
                 ? "bg-ink text-paper-strong"
-                : "bg-paper-strong text-ink hover:bg-sun"
+                : "bg-paper-strong text-ink hover:bg-highlight"
             }`}
           >
             Store credit +20%
@@ -163,7 +167,7 @@ export function SubmitForm({ profile, defaultEmail }: Props) {
           <span>
             I agree to the{" "}
             <a href="#" className="underline underline-offset-4 decoration-2">
-              Aqua TCG seller terms
+              seller terms
             </a>{" "}
             and confirm the cards I am sending match the conditions
             declared.
@@ -175,6 +179,13 @@ export function SubmitForm({ profile, defaultEmail }: Props) {
         <div className="bg-warn/10 border-2 border-warn text-warn rounded-md px-3 py-2 text-[12px]">
           {error}
         </div>
+      ) : null}
+
+      {preview ? (
+        <p className="text-[11px] text-muted">
+          Preview: confirming won&rsquo;t send anything to the shop.
+          You&rsquo;ll see a sample confirmation with shipping instructions.
+        </p>
       ) : null}
 
       <Button type="submit" size="lg" className="w-full" disabled={pending}>

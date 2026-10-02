@@ -2,12 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button, Input, Field } from "@/components/ui/Form";
 import { updatePassword } from "@/app/_actions/auth";
-import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/preview-server";
 
 type SearchParams = Promise<{ error?: string }>;
 
 export const metadata = {
-  title: "Set a new password · Aqua TCG",
+  title: "Set a new password",
 };
 
 /**
@@ -25,17 +25,14 @@ export default async function ResetPasswordPage({
   searchParams: SearchParams;
 }) {
   const sp = await searchParams;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user } = await getViewer();
 
   if (!user) {
     redirect("/login?mode=forgot&error=reset_link_expired");
   }
 
   return (
-    <main className="min-h-screen bg-paper">
+    <div className="bg-paper">
       <div className="max-w-[480px] mx-auto px-5 py-12 md:py-20 flex flex-col gap-6">
         <header className="flex flex-col gap-3">
           <span className="font-display text-[10px] tracking-[0.25em] bg-ink text-paper-strong px-2 py-1 w-fit rounded-sm">
@@ -87,12 +84,12 @@ export default async function ResetPasswordPage({
           </Button>
           <Link
             href="/"
-            className="font-display text-[11px] tracking-wider underline underline-offset-4 decoration-2 text-muted hover:text-ocean self-start"
+            className="font-display text-[11px] tracking-wider underline underline-offset-4 decoration-2 text-muted hover:text-brand self-start"
           >
             ← cancel
           </Link>
         </form>
       </div>
-    </main>
+    </div>
   );
 }

@@ -8,12 +8,12 @@ import {
 } from "@/app/_actions/prices";
 import { TriggerSyncButton } from "./TriggerSyncButton";
 
-export const metadata = { title: "Sync · Aqua TCG admin" };
+export const metadata = { title: "Sync" };
 
 const STATUS_TONES: Record<string, string> = {
   running: "bg-paper-strong text-ink",
-  success: "bg-wave text-ink",
-  partial: "bg-sun text-ink",
+  success: "bg-tint text-ink",
+  partial: "bg-highlight text-ink",
   failed: "bg-warn text-paper-strong",
 };
 
@@ -27,6 +27,8 @@ function fmtDuration(start: string, end: string | null): string {
   const ms = new Date(end).getTime() - new Date(start).getTime();
   return `${(ms / 1000).toFixed(1)}s`;
 }
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminSyncPage() {
   const [runs, coverage] = await Promise.all([
@@ -48,12 +50,12 @@ export default async function AdminSyncPage() {
           { label: "Sync" },
         ]}
         title="Catalogue sync"
-        kicker={{ label: "CRON · 04:00 UTC", tone: "wave" }}
-        subtitle="Nightly TCGCSV → Supabase price ingest. Trigger an immediate run below if you need fresher data before a quote."
+        kicker={{ label: "NIGHTLY · 04:00 UTC", tone: "tint" }}
+        subtitle="Market prices refresh automatically every night. Run a sync now if you need fresher numbers before a big quote."
       />
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Cards in DB" value={coverage.totalCards.toLocaleString()} />
+        <StatCard label="Cards in catalogue" value={coverage.totalCards.toLocaleString()} />
         <StatCard
           label="With live prices"
           value={`${coverage.withPrices.toLocaleString()}`}
@@ -90,7 +92,7 @@ export default async function AdminSyncPage() {
           <TBody>
             {runs.length === 0 ? (
               <TR>
-                <TD className="text-center text-secondary py-6">
+                <TD colSpan={8} className="text-center text-secondary py-6">
                   No sync runs yet. Hit the button above to trigger one.
                 </TD>
               </TR>
@@ -102,8 +104,11 @@ export default async function AdminSyncPage() {
                   </TD>
                   <TD>
                     <span className="font-display text-[11px] tracking-wider uppercase">
-                      {r.kind}
-                      {r.source ? ` · ${r.source}` : ""}
+                      {r.kind === "prices"
+                        ? "Card prices"
+                        : r.kind === "fx"
+                          ? "Exchange rates"
+                          : r.kind}
                     </span>
                   </TD>
                   <TD>
@@ -113,9 +118,15 @@ export default async function AdminSyncPage() {
                       {r.status.toUpperCase()}
                     </span>
                   </TD>
-                  <TD className="text-right tabular-nums">{r.sets_processed}</TD>
-                  <TD className="text-right tabular-nums">{r.cards_upserted}</TD>
-                  <TD className="text-right tabular-nums">{r.prices_upserted}</TD>
+                  <TD className="text-right tabular-nums">
+                    {r.kind === "fx" ? "—" : r.sets_processed.toLocaleString()}
+                  </TD>
+                  <TD className="text-right tabular-nums">
+                    {r.kind === "fx" ? "—" : r.cards_upserted.toLocaleString()}
+                  </TD>
+                  <TD className="text-right tabular-nums">
+                    {r.kind === "fx" ? "—" : r.prices_upserted.toLocaleString()}
+                  </TD>
                   <TD className="text-[11px] text-muted tabular-nums font-mono">
                     {fmtDuration(r.started_at, r.finished_at)}
                   </TD>
