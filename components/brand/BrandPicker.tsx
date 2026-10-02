@@ -1,44 +1,9 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { brand, THEMES, THEME_PALETTES, type ThemeName } from "@/lib/brand";
-import {
-  contrastInfo,
-  saveCustomBrand,
-  useCustomBrand,
-  type CustomBrand,
-} from "@/lib/brand-custom";
-
-const SLOTS = [
-  { key: "brand", label: "Main colour", hint: "Header band, buttons, featured" },
-  { key: "tint", label: "Second colour", hint: "Buy panels, badges" },
-  { key: "highlight", label: "Accent", hint: "Wordmark, sell panels, stickers" },
-] as const;
-
-const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
-const MAX_SVG_BYTES = 300 * 1024;
-const LOGO_PX = 400;
-
-/** Raster → downscaled PNG data URL so it fits comfortably in storage. */
-async function rasterToDataUrl(file: File): Promise<string> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, LOGO_PX / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-  canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-  return canvas.toDataURL("image/png");
-}
-
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
+import { brand, THEMES, THEME_PALETTES } from "@/lib/brand";
+import { COLOUR_SLOTS as SLOTS, useBrandEditor } from "@/lib/brand-editor";
+import { reopenWelcome } from "@/components/brand/WelcomeBrandModal";
 
 /**
  * "Pick your colours" — the nav-bar panel a prospect uses to see the
@@ -46,25 +11,24 @@ function fileToDataUrl(file: File): Promise<string> {
  * upload and their shop name. Saved in this browser only.
  */
 export function BrandPicker() {
-  const custom = useCustomBrand();
+  const {
+    custom,
+    error,
+    busy,
+    activePreset,
+    current,
+    hasCustomColours,
+    lowContrast,
+    update,
+    pickPreset,
+    uploadLogo,
+    reset,
+  } = useBrandEditor();
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const panelId = useId();
-
-  const activePreset: ThemeName = custom?.preset ?? brand.theme;
-  const palette = THEME_PALETTES[activePreset];
-  const current = {
-    brand: custom?.brand ?? palette.brand,
-    tint: custom?.tint ?? palette.tint,
-    highlight: custom?.highlight ?? palette.highlight,
-  };
-  const hasCustomColours = Boolean(custom?.brand || custom?.tint || custom?.highlight);
-  const contrast = contrastInfo(current.brand);
-  const lowContrast = contrast.ink < 3 && contrast.white < 3;
 
   // Close on Escape / outside click.
   useEffect(() => {
@@ -89,45 +53,9 @@ export function BrandPicker() {
     };
   }, [open]);
 
-  function update(patch: Partial<CustomBrand>) {
-    const res = saveCustomBrand({ ...(custom ?? {}), ...patch });
-    setError(res.ok ? null : res.error);
-  }
-
-  function pickPreset(preset: ThemeName) {
-    update({ preset, brand: undefined, tint: undefined, highlight: undefined });
-  }
-
   async function onLogo(file: File | undefined) {
-    if (!file) return;
-    setError(null);
-    if (!file.type.startsWith("image/")) {
-      setError("That file isn't an image. Try a PNG, JPG, SVG or WebP.");
-      return;
-    }
-    if (file.size > MAX_UPLOAD_BYTES) {
-      setError("That image is over 5 MB. Try a smaller file.");
-      return;
-    }
-    setBusy(true);
-    try {
-      let dataUrl: string;
-      if (file.type === "image/svg+xml") {
-        if (file.size > MAX_SVG_BYTES) {
-          setError("That SVG is over 300 KB. Try a simpler file or a PNG.");
-          return;
-        }
-        dataUrl = await fileToDataUrl(file);
-      } else {
-        dataUrl = await rasterToDataUrl(file);
-      }
-      update({ logo: dataUrl });
-    } catch {
-      setError("Couldn't read that image. Try another file.");
-    } finally {
-      setBusy(false);
-      if (fileRef.current) fileRef.current.value = "";
-    }
+    await uploadLogo(file);
+    if (fileRef.current) fileRef.current.value = "";
   }
 
   return (
@@ -299,17 +227,24 @@ export function BrandPicker() {
             </p>
           ) : null}
 
-          <footer className="flex items-center justify-between gap-3 pt-1 border-t-2 border-rule">
+          <footer className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pt-1 border-t-2 border-rule">
             <button
               type="button"
-              onClick={() => {
-                saveCustomBrand(null);
-                setError(null);
-              }}
+              onClick={reset}
               disabled={!custom}
               className="text-[12px] underline underline-offset-2 text-secondary hover:text-ink disabled:opacity-40 disabled:no-underline"
             >
               Reset to default
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                reopenWelcome();
+              }}
+              className="text-[12px] underline underline-offset-2 text-secondary hover:text-ink"
+            >
+              Guided setup
             </button>
             <button
               type="button"

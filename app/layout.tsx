@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { PageFooter } from "@/components/wireframe/PageFooter";
 import { BrandStyle } from "@/components/brand/BrandStyle";
+import { WelcomeBrandModal } from "@/components/brand/WelcomeBrandModal";
 import { BRAND_BOOT_SCRIPT } from "@/lib/brand-custom";
 import { brand } from "@/lib/brand";
 
@@ -66,7 +67,12 @@ export default function RootLayout({
         ) : null}
         <main className="flex-1 overflow-x-clip">{children}</main>
         <PageFooter />
-        {brand.demoMode ? <BrandStyle defaultTheme={brand.theme} /> : null}
+        {brand.demoMode ? (
+          <>
+            <BrandStyle defaultTheme={brand.theme} />
+            <WelcomeBrandModal />
+          </>
+        ) : null}
       </body>
     </html>
   );
